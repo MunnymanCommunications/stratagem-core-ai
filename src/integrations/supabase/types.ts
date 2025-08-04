@@ -14,7 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      login: {
+        Row: {
+          Company: Json | null
+          created_at: string
+          Email: Json | null
+          id: number
+          "memory information": Json | null
+          Name: string | null
+        }
+        Insert: {
+          Company?: Json | null
+          created_at?: string
+          Email?: Json | null
+          id?: number
+          "memory information"?: Json | null
+          Name?: string | null
+        }
+        Update: {
+          Company?: Json | null
+          created_at?: string
+          Email?: Json | null
+          id?: number
+          "memory information"?: Json | null
+          Name?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          company: string | null
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
