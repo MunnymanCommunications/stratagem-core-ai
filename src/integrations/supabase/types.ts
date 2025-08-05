@@ -14,6 +14,125 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_settings: {
+        Row: {
+          ai_model: string
+          api_key_encrypted: string | null
+          chat_completions_url: string | null
+          created_at: string
+          global_prompt: string
+          id: string
+          max_base_documents: number
+          max_pro_documents: number
+          updated_at: string
+        }
+        Insert: {
+          ai_model?: string
+          api_key_encrypted?: string | null
+          chat_completions_url?: string | null
+          created_at?: string
+          global_prompt?: string
+          id?: string
+          max_base_documents?: number
+          max_pro_documents?: number
+          updated_at?: string
+        }
+        Update: {
+          ai_model?: string
+          api_key_encrypted?: string | null
+          chat_completions_url?: string | null
+          created_at?: string
+          global_prompt?: string
+          id?: string
+          max_base_documents?: number
+          max_pro_documents?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      analytics_events: {
+        Row: {
+          created_at: string
+          event_data: Json | null
+          event_type: string
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      chat_conversations: {
+        Row: {
+          created_at: string
+          id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      chat_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "chat_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       login: {
         Row: {
           Company: Json | null
@@ -65,6 +184,66 @@ export type Database = {
           full_name?: string | null
           id?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      user_documents: {
+        Row: {
+          created_at: string
+          file_path: string
+          file_size: number
+          filename: string
+          id: string
+          mime_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_path: string
+          file_size: number
+          filename: string
+          id?: string
+          mime_type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          file_path?: string
+          file_size?: number
+          filename?: string
+          id?: string
+          mime_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_subscriptions: {
+        Row: {
+          created_at: string
+          id: string
+          max_documents: number
+          tier: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          max_documents?: number
+          tier?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          max_documents?: number
+          tier?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
