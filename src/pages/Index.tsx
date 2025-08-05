@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -30,22 +31,17 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <Layout>
       <div className="max-w-6xl mx-auto">
-        <header className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              DesignR AI Platform
-            </h1>
-            <p className="text-muted-foreground mt-2">Welcome back, {user.email}</p>
-          </div>
-          <Button onClick={signOut} variant="outline">
-            Sign Out
-          </Button>
+        <header className="mb-8">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            DesignR AI Platform
+          </h1>
+          <p className="text-muted-foreground mt-2">Welcome back, {user.email}</p>
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card>
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/chat')}>
             <CardHeader>
               <CardTitle>AI Assistant</CardTitle>
               <CardDescription>Get help with your business tasks</CardDescription>
@@ -58,7 +54,7 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/documents')}>
             <CardHeader>
               <CardTitle>Document Manager</CardTitle>
               <CardDescription>Upload and manage your files</CardDescription>
@@ -71,7 +67,7 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/business-tools')}>
             <CardHeader>
               <CardTitle>Business Tools</CardTitle>
               <CardDescription>Generate invoices and reports</CardDescription>
@@ -84,7 +80,7 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/analytics')}>
             <CardHeader>
               <CardTitle>Analytics</CardTitle>
               <CardDescription>Monitor your application usage</CardDescription>
@@ -97,7 +93,7 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/white-label')}>
             <CardHeader>
               <CardTitle>White-Label</CardTitle>
               <CardDescription>Customize for your partners</CardDescription>
@@ -110,7 +106,7 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/subscription')}>
             <CardHeader>
               <CardTitle>Subscription Tiers</CardTitle>
               <CardDescription>Manage access levels</CardDescription>
@@ -124,7 +120,7 @@ const Index = () => {
           </Card>
         </div>
       </div>
-    </div>
+    </Layout>
   );
 };
 
