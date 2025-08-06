@@ -252,7 +252,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_company_info_for_ai: {
+        Args: { user_uuid: string }
+        Returns: {
+          company_name: string
+          business_info: Json
+        }[]
+      }
+      get_user_documents_for_ai: {
+        Args: { user_uuid: string }
+        Returns: {
+          filename: string
+          content_summary: string
+          file_path: string
+          mime_type: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
