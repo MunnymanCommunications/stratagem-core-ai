@@ -78,8 +78,10 @@ const Chat = () => {
 
       if (error) throw error;
       setMessages((data || []).map(msg => ({
-        ...msg,
-        role: msg.role as 'user' | 'assistant'
+        id: msg.id,
+        role: msg.role as 'user' | 'assistant',
+        content: msg.content,
+        created_at: msg.created_at
       })));
     } catch (error) {
       console.error('Error fetching messages:', error);
@@ -131,7 +133,12 @@ const Chat = () => {
       if (userError) throw userError;
 
       // Add user message to UI immediately
-      setMessages(prev => [...prev, userMessageData]);
+      setMessages(prev => [...prev, {
+        id: userMessageData.id,
+        role: userMessageData.role as 'user' | 'assistant',
+        content: userMessageData.content,
+        created_at: userMessageData.created_at
+      }]);
 
       // Simulate AI response (replace with actual AI API call)
       const aiResponse = "I'm a simulated AI response. In a real implementation, this would connect to your AI model API with the uploaded documents as context.";
@@ -151,7 +158,12 @@ const Chat = () => {
       if (aiError) throw aiError;
 
       // Add AI message to UI
-      setMessages(prev => [...prev, aiMessageData]);
+      setMessages(prev => [...prev, {
+        id: aiMessageData.id,
+        role: aiMessageData.role as 'user' | 'assistant',
+        content: aiMessageData.content,
+        created_at: aiMessageData.created_at
+      }]);
 
       // Update conversation title if it's the first message
       if (messages.length === 0) {
