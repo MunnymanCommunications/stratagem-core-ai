@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Layout from '@/components/layout/Layout';
+import AddPartnerDialog from '@/components/dialogs/AddPartnerDialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,6 +40,12 @@ const WhiteLabel = () => {
       customizations: 'Full Branding'
     }
   ]);
+
+  const [showAddPartner, setShowAddPartner] = useState(false);
+
+  const handleAddPartner = (newPartner: any) => {
+    setPartners(prev => [...prev, newPartner]);
+  };
 
   return (
     <Layout>
@@ -208,7 +215,7 @@ const WhiteLabel = () => {
                 <h3 className="text-lg font-semibold">Partner Management</h3>
                 <p className="text-muted-foreground">Manage your white-label partners</p>
               </div>
-              <Button>
+              <Button onClick={() => setShowAddPartner(true)}>
                 <Users className="h-4 w-4 mr-2" />
                 Add Partner
               </Button>
@@ -363,6 +370,12 @@ const WhiteLabel = () => {
             </Card>
           </TabsContent>
         </Tabs>
+        
+        <AddPartnerDialog
+          open={showAddPartner}
+          onOpenChange={setShowAddPartner}
+          onAddPartner={handleAddPartner}
+        />
       </div>
     </Layout>
   );

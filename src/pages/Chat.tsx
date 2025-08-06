@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import Layout from '@/components/layout/Layout';
+import QuickActions from '@/components/chat/QuickActions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -110,10 +111,11 @@ const Chat = () => {
     }
   };
 
-  const sendMessage = async () => {
-    if (!inputMessage.trim() || !currentConversation || isLoading) return;
+  const sendMessage = async (messageContent?: string) => {
+    const messageToSend = messageContent || inputMessage;
+    if (!messageToSend.trim() || !currentConversation || isLoading) return;
 
-    const userMessage = inputMessage.trim();
+    const userMessage = messageToSend.trim();
     setInputMessage('');
     setIsLoading(true);
 
@@ -191,6 +193,10 @@ const Chat = () => {
       e.preventDefault();
       sendMessage();
     }
+  };
+
+  const handleQuickAction = (actionId: string, prompt: string) => {
+    sendMessage(prompt);
   };
 
   return (
@@ -304,7 +310,8 @@ const Chat = () => {
                     </ScrollArea>
                   </CardContent>
                   
-                  <div className="p-4 border-t">
+                  <div className="p-4 border-t space-y-4">
+                    <QuickActions onQuickAction={handleQuickAction} />
                     <div className="flex gap-2">
                       <Input
                         placeholder="Type your message..."
@@ -313,7 +320,7 @@ const Chat = () => {
                         onKeyPress={handleKeyPress}
                         disabled={isLoading}
                       />
-                      <Button onClick={sendMessage} disabled={!inputMessage.trim() || isLoading}>
+                      <Button onClick={() => sendMessage()} disabled={!inputMessage.trim() || isLoading}>
                         <Send className="h-4 w-4" />
                       </Button>
                     </div>

@@ -14,6 +14,7 @@ interface FileUploadProps {
   acceptedFileTypes?: string[];
   title?: string;
   description?: string;
+  documentType?: string;
 }
 
 interface UploadingFile {

@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import Layout from '@/components/layout/Layout';
 import FileUpload from '@/components/documents/FileUpload';
 import DocumentList from '@/components/documents/DocumentList';
+import GeneratedDocuments from '@/components/documents/GeneratedDocuments';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -126,7 +127,7 @@ const Documents = () => {
         </div>
 
         {/* Special Document Types */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Card>
             <CardHeader>
               <CardTitle>Pricing/Services Document</CardTitle>
@@ -142,6 +143,34 @@ const Documents = () => {
                   acceptedFileTypes={['.pdf', '.doc', '.docx', '.txt', '.csv', '.xlsx']}
                   title="Upload Pricing Document"
                   description="PDF, Word, Excel, or text files containing your pricing information"
+                  documentType="pricing"
+                />
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">
+                    Document limit reached. Please upgrade your plan to upload more documents.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Proposal Templates</CardTitle>
+              <CardDescription>
+                Upload example proposals for AI-powered proposal generation
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {canUploadMore ? (
+                <FileUpload
+                  onUploadComplete={handleUploadComplete}
+                  maxFiles={3}
+                  acceptedFileTypes={['.pdf', '.doc', '.docx']}
+                  title="Upload Proposal Template"
+                  description="PDF or Word documents with your proposal format and style"
+                  documentType="proposal"
                 />
               ) : (
                 <div className="text-center py-8">
@@ -167,6 +196,7 @@ const Documents = () => {
                   maxFiles={subscription?.max_documents! - documentCount}
                   title="Upload Documents"
                   description="Any document type for AI analysis"
+                  documentType="general"
                 />
               ) : (
                 <div className="text-center py-8">
@@ -178,6 +208,9 @@ const Documents = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Generated Documents */}
+        <GeneratedDocuments />
 
         {/* Document List */}
         <DocumentList refresh={refreshCount} />

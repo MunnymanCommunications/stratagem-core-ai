@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Layout from '@/components/layout/Layout';
 import InvoiceGenerator from '@/components/business/InvoiceGenerator';
+import ProposalGenerator from '@/components/business/ProposalGenerator';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -28,18 +29,18 @@ const BusinessTools = () => {
       color: 'bg-blue-500'
     },
     {
+      id: 'proposal',
+      title: 'Proposal Generator',
+      description: 'Create professional proposals for clients',
+      icon: FileText,
+      color: 'bg-indigo-500'
+    },
+    {
       id: 'calculator',
       title: 'Business Calculator',
       description: 'Calculate taxes, margins, and ROI',
       icon: Calculator,
       color: 'bg-green-500'
-    },
-    {
-      id: 'scheduler',
-      title: 'Meeting Scheduler',
-      description: 'Schedule and manage client meetings',
-      icon: Calendar,
-      color: 'bg-purple-500'
     },
     {
       id: 'analytics',
@@ -72,6 +73,10 @@ const BusinessTools = () => {
 
           <TabsContent value="invoice" className="space-y-6">
             <InvoiceGenerator />
+          </TabsContent>
+
+          <TabsContent value="proposal" className="space-y-6">
+            <ProposalGenerator />
           </TabsContent>
 
           <TabsContent value="calculator" className="space-y-6">
@@ -186,27 +191,6 @@ const BusinessTools = () => {
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
-
-          <TabsContent value="scheduler" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5" />
-                  Meeting Scheduler
-                </CardTitle>
-                <CardDescription>Schedule and manage your client meetings</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
-                  <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Coming Soon</h3>
-                  <p className="text-muted-foreground">
-                    Full calendar integration and meeting scheduling features will be available soon.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-6">
