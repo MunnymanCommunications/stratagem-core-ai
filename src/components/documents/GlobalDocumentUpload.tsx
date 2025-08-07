@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +15,8 @@ interface GlobalDocument {
   file_size: number;
   mime_type: string;
   created_at: string;
+  file_path: string;
+  user_id: string;
 }
 
 const GlobalDocumentUpload = () => {
@@ -25,11 +27,16 @@ const GlobalDocumentUpload = () => {
   const [globalDocuments, setGlobalDocuments] = useState<GlobalDocument[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    fetchGlobalDocuments();
+  }, []);
+
   const fetchGlobalDocuments = async () => {
     try {
       const { data, error } = await supabase
-        .from('global_documents')
+        .from('user_documents')
         .select('*')
+        .eq('filename', 'GLOBAL_ADMIN_DOCUMENT')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -62,19 +69,16 @@ const GlobalDocumentUpload = () => {
       // Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from('documents')
-        .upload(filePath, file, {
-          onUploadProgress: (progress) => {
-            setUploadProgress((progress.loaded / progress.total) * 100);
-          }
-        });
+        .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
-      // Save document metadata to database
+      // Save document metadata to database (using user_documents temporarily)
       const { error: dbError } = await supabase
-        .from('global_documents')
+        .from('user_documents')
         .insert({
-          filename: fileName,
+          user_id: user?.id,
+          filename: 'GLOBAL_ADMIN_DOCUMENT', // Special marker for global docs
           file_path: filePath,
           file_size: file.size,
           mime_type: file.type
@@ -113,7 +117,7 @@ const GlobalDocumentUpload = () => {
 
       // Delete from database
       const { error } = await supabase
-        .from('global_documents')
+        .from('user_documents')
         .delete()
         .eq('id', documentId);
 
