@@ -154,8 +154,28 @@ const Chat = () => {
         created_at: userMessageData.created_at
       }]);
 
-      // Simulate AI response (replace with actual AI API call)
-      const aiResponse = "I'm a simulated AI response. In a real implementation, this would connect to your AI model API with the uploaded documents as context.";
+      // Call AI API
+      const conversationHistory = messages.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }));
+
+      const { data: aiData, error: aiApiError } = await supabase.functions.invoke('ai-chat', {
+        body: {
+          message: userMessage,
+          conversationHistory,
+          userId: user?.id
+        }
+      });
+
+      let aiResponse = "I'm having trouble connecting to my AI services right now. Please try again in a moment.";
+      
+      if (aiApiError) {
+        console.error('AI API error:', aiApiError);
+        toast.error('Failed to get AI response');
+      } else if (aiData?.response) {
+        aiResponse = aiData.response;
+      }
 
       // Add AI response to database
       const { data: aiMessageData, error: aiError } = await supabase

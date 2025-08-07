@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { useToast } from '@/components/ui/use-toast';
 import { FileText, Download, Mail, Edit, Calendar, DollarSign, Clock, User } from 'lucide-react';
 
 interface ProposalItem {
@@ -34,6 +35,7 @@ interface CompanyInfo {
 }
 
 const ProposalGenerator = () => {
+  const { toast } = useToast();
   const [proposalNumber, setProposalNumber] = useState(`PROP-${Date.now()}`);
   const [issueDate, setIssueDate] = useState(new Date().toISOString().split('T')[0]);
   const [validUntil, setValidUntil] = useState(
@@ -101,8 +103,62 @@ const ProposalGenerator = () => {
   };
 
   const generatePDF = () => {
-    // TODO: Implement PDF generation
-    console.log('Generating PDF...');
+    // Create proposal content as text for download
+    const proposalText = `
+PROPOSAL ${proposalNumber}
+
+From: ${companyInfo.name}
+${companyInfo.address}
+Phone: ${companyInfo.phone}
+Email: ${companyInfo.email}
+Website: ${companyInfo.website}
+
+To: ${clientInfo.name}
+${clientInfo.email}
+${clientInfo.company}
+${clientInfo.address}
+${clientInfo.phone}
+
+Date: ${issueDate}
+Valid Until: ${validUntil}
+
+PROJECT OVERVIEW:
+${projectOverview}
+
+PROPOSED SERVICES:
+${proposalItems.map((item, index) => `
+${index + 1}. ${item.service}
+   Description: ${item.description}
+   Timeline: ${item.timeline}
+   Price: $${item.price.toFixed(2)}
+`).join('')}
+
+TOTAL: $${calculateTotal().toFixed(2)}
+
+TERMS AND CONDITIONS:
+${terms}
+
+Thank you for considering our proposal. We look forward to working with you.
+
+Best regards,
+${companyInfo.name}
+    `;
+
+    // Create and download as text file
+    const blob = new Blob([proposalText], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Proposal_${proposalNumber}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Success",
+      description: "Proposal downloaded successfully!",
+    });
   };
 
   const saveTemplate = () => {
@@ -111,7 +167,10 @@ const ProposalGenerator = () => {
       terms,
     };
     localStorage.setItem('proposalTemplate', JSON.stringify(template));
-    console.log('Template saved!');
+    toast({
+      title: "Success",
+      description: "Template saved successfully!",
+    });
   };
 
   const loadTemplate = () => {
