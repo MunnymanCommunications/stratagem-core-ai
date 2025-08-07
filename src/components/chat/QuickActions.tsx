@@ -3,9 +3,11 @@ import { FileText, Receipt, Send } from 'lucide-react';
 
 interface QuickActionsProps {
   onQuickAction: (action: string, prompt: string) => void;
+  activeAction: string | null;
+  onActionSelect: (actionId: string) => void;
 }
 
-const QuickActions = ({ onQuickAction }: QuickActionsProps) => {
+const QuickActions = ({ onQuickAction, activeAction, onActionSelect }: QuickActionsProps) => {
   const quickActions = [
     {
       id: 'generate-proposal',
@@ -26,10 +28,14 @@ const QuickActions = ({ onQuickAction }: QuickActionsProps) => {
       {quickActions.map((action) => (
         <Button
           key={action.id}
-          variant="outline"
+          variant={activeAction === action.id ? "default" : "outline"}
           size="sm"
-          onClick={() => onQuickAction(action.id, action.prompt)}
-          className="bg-transparent border-blue-300 text-blue-600 hover:bg-blue-50 hover:border-blue-400 transition-colors"
+          onClick={() => onActionSelect(action.id)}
+          className={`transition-colors ${
+            activeAction === action.id 
+              ? "bg-primary text-primary-foreground border-primary" 
+              : "bg-transparent border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50"
+          }`}
         >
           <action.icon className="h-4 w-4 mr-2" />
           {action.label}

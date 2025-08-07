@@ -1,0 +1,221 @@
+import { useState, useRef } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Progress } from '@/components/ui/progress';
+import { toast } from 'sonner';
+import { Upload, FileText, X } from 'lucide-react';
+
+interface GlobalDocument {
+  id: string;
+  filename: string;
+  file_size: number;
+  mime_type: string;
+  created_at: string;
+}
+
+const GlobalDocumentUpload = () => {
+  const { user } = useAuth();
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [customName, setCustomName] = useState('');
+  const [globalDocuments, setGlobalDocuments] = useState<GlobalDocument[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const fetchGlobalDocuments = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('global_documents')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setGlobalDocuments(data || []);
+    } catch (error) {
+      console.error('Error fetching global documents:', error);
+      toast.error('Failed to load global documents');
+    }
+  };
+
+  const handleFileUpload = async (file: File) => {
+    if (!user) {
+      toast.error('Please log in to upload documents');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) { // 10MB limit
+      toast.error('File size must be less than 10MB');
+      return;
+    }
+
+    setUploading(true);
+    setUploadProgress(0);
+
+    try {
+      const fileName = customName.trim() || file.name;
+      const fileExt = file.name.split('.').pop();
+      const filePath = `global/${Date.now()}-${fileName}${fileExt ? `.${fileExt}` : ''}`;
+
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(filePath, file, {
+          onUploadProgress: (progress) => {
+            setUploadProgress((progress.loaded / progress.total) * 100);
+          }
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Save document metadata to database
+      const { error: dbError } = await supabase
+        .from('global_documents')
+        .insert({
+          filename: fileName,
+          file_path: filePath,
+          file_size: file.size,
+          mime_type: file.type
+        });
+
+      if (dbError) throw dbError;
+
+      toast.success('Global document uploaded successfully');
+      setCustomName('');
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      fetchGlobalDocuments();
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      toast.error('Failed to upload document');
+    } finally {
+      setUploading(false);
+      setUploadProgress(0);
+    }
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      handleFileUpload(file);
+    }
+  };
+
+  const deleteDocument = async (documentId: string, filePath: string) => {
+    try {
+      // Delete from storage
+      await supabase.storage
+        .from('documents')
+        .remove([filePath]);
+
+      // Delete from database
+      const { error } = await supabase
+        .from('global_documents')
+        .delete()
+        .eq('id', documentId);
+
+      if (error) throw error;
+
+      toast.success('Document deleted successfully');
+      fetchGlobalDocuments();
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      toast.error('Failed to delete document');
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <FileText className="h-5 w-5" />
+          Global Documents
+        </CardTitle>
+        <CardDescription>
+          Upload documents that will be available to all users in their AI conversations
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="customName">Document Name (Optional)</Label>
+          <Input
+            id="customName"
+            value={customName}
+            onChange={(e) => setCustomName(e.target.value)}
+            placeholder="Enter custom name for the document"
+          />
+        </div>
+
+        <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
+          <input
+            ref={fileInputRef}
+            type="file"
+            onChange={handleFileSelect}
+            className="hidden"
+            accept=".pdf,.doc,.docx,.txt,.rtf"
+          />
+          
+          {uploading ? (
+            <div className="space-y-4">
+              <div className="text-sm text-muted-foreground">Uploading...</div>
+              <Progress value={uploadProgress} className="w-full" />
+              <div className="text-xs text-muted-foreground">{Math.round(uploadProgress)}%</div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <Upload className="h-12 w-12 text-muted-foreground mx-auto" />
+              <div>
+                <p className="text-sm font-medium">Upload Global Document</p>
+                <p className="text-xs text-muted-foreground">
+                  PDF, DOC, DOCX, TXT, RTF up to 10MB
+                </p>
+              </div>
+              <Button
+                onClick={() => fileInputRef.current?.click()}
+                variant="outline"
+              >
+                Select File
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {globalDocuments.length > 0 && (
+          <div className="space-y-2">
+            <h4 className="font-medium">Uploaded Global Documents</h4>
+            <div className="space-y-2">
+              {globalDocuments.map((doc) => (
+                <div
+                  key={doc.id}
+                  className="flex items-center justify-between p-3 border rounded-lg"
+                >
+                  <div className="flex items-center gap-3">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">{doc.filename}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {(doc.file_size / 1024 / 1024).toFixed(2)} MB • {new Date(doc.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => deleteDocument(doc.id, doc.file_path)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+export default GlobalDocumentUpload;

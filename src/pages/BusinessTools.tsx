@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Layout from '@/components/layout/Layout';
 import InvoiceGenerator from '@/components/business/InvoiceGenerator';
 import ProposalGenerator from '@/components/business/ProposalGenerator';
+import BusinessCalculators from '@/components/business/BusinessCalculators';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -80,117 +81,7 @@ const BusinessTools = () => {
           </TabsContent>
 
           <TabsContent value="calculator" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <DollarSign className="h-5 w-5" />
-                    Profit Margin Calculator
-                  </CardTitle>
-                  <CardDescription>Calculate your profit margins and markup</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium">Cost Price</label>
-                      <input type="number" className="w-full p-2 border rounded-md" placeholder="0.00" />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium">Selling Price</label>
-                      <input type="number" className="w-full p-2 border rounded-md" placeholder="0.00" />
-                    </div>
-                  </div>
-                  <div className="p-4 bg-muted rounded-lg">
-                    <div className="text-2xl font-bold">0%</div>
-                    <div className="text-sm text-muted-foreground">Profit Margin</div>
-                  </div>
-                  <Button className="w-full">Calculate</Button>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Calculator className="h-5 w-5" />
-                    Tax Calculator
-                  </CardTitle>
-                  <CardDescription>Calculate taxes and net income</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Gross Income</label>
-                    <input type="number" className="w-full p-2 border rounded-md" placeholder="0.00" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Tax Rate (%)</label>
-                    <input type="number" className="w-full p-2 border rounded-md" placeholder="8.5" />
-                  </div>
-                  <div className="p-4 bg-muted rounded-lg">
-                    <div className="text-2xl font-bold">$0.00</div>
-                    <div className="text-sm text-muted-foreground">Net Income</div>
-                  </div>
-                  <Button className="w-full">Calculate</Button>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Target className="h-5 w-5" />
-                    ROI Calculator
-                  </CardTitle>
-                  <CardDescription>Calculate return on investment</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium">Initial Investment</label>
-                      <input type="number" className="w-full p-2 border rounded-md" placeholder="0.00" />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium">Final Value</label>
-                      <input type="number" className="w-full p-2 border rounded-md" placeholder="0.00" />
-                    </div>
-                  </div>
-                  <div className="p-4 bg-muted rounded-lg">
-                    <div className="text-2xl font-bold">0%</div>
-                    <div className="text-sm text-muted-foreground">Return on Investment</div>
-                  </div>
-                  <Button className="w-full">Calculate</Button>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Clock className="h-5 w-5" />
-                    Break-Even Calculator
-                  </CardTitle>
-                  <CardDescription>Calculate break-even point</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Fixed Costs</label>
-                    <input type="number" className="w-full p-2 border rounded-md" placeholder="0.00" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium">Price per Unit</label>
-                      <input type="number" className="w-full p-2 border rounded-md" placeholder="0.00" />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium">Variable Cost per Unit</label>
-                      <input type="number" className="w-full p-2 border rounded-md" placeholder="0.00" />
-                    </div>
-                  </div>
-                  <div className="p-4 bg-muted rounded-lg">
-                    <div className="text-2xl font-bold">0</div>
-                    <div className="text-sm text-muted-foreground">Units to Break Even</div>
-                  </div>
-                  <Button className="w-full">Calculate</Button>
-                </CardContent>
-              </Card>
-            </div>
+            <BusinessCalculators />
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-6">

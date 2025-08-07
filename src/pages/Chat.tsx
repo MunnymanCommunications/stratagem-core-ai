@@ -31,6 +31,7 @@ const Chat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [activeAction, setActiveAction] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -115,7 +116,18 @@ const Chat = () => {
     const messageToSend = messageContent || inputMessage;
     if (!messageToSend.trim() || !currentConversation || isLoading) return;
 
-    const userMessage = messageToSend.trim();
+    let userMessage = messageToSend.trim();
+    
+    // Add action context if one is selected
+    if (activeAction) {
+      const actionMap = {
+        'generate-proposal': 'Generate a professional proposal based on our conversation. Use my uploaded proposal templates for formatting and include relevant services from my pricing document. Make sure to include project timeline, deliverables, and pricing.',
+        'generate-invoice': 'Generate an invoice based on the services we discussed. Use my company information and pricing document to create an accurate invoice with the correct pricing and branding.'
+      };
+      userMessage = `${actionMap[activeAction as keyof typeof actionMap]} ${userMessage}`;
+      setActiveAction(null); // Clear the action after sending
+    }
+    
     setInputMessage('');
     setIsLoading(true);
 
@@ -196,7 +208,11 @@ const Chat = () => {
   };
 
   const handleQuickAction = (actionId: string, prompt: string) => {
-    sendMessage(prompt);
+    // This is kept for compatibility but not used anymore
+  };
+
+  const handleActionSelect = (actionId: string) => {
+    setActiveAction(activeAction === actionId ? null : actionId);
   };
 
   return (
@@ -311,7 +327,11 @@ const Chat = () => {
                   </CardContent>
                   
                   <div className="p-4 border-t space-y-4">
-                    <QuickActions onQuickAction={handleQuickAction} />
+                    <QuickActions 
+                      onQuickAction={handleQuickAction} 
+                      activeAction={activeAction}
+                      onActionSelect={handleActionSelect}
+                    />
                     <div className="flex gap-2">
                       <Input
                         placeholder="Type your message..."

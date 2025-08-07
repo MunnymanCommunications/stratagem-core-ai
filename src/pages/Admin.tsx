@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Settings, Brain, Key, Users, FileText, Save } from 'lucide-react';
+import GlobalDocumentUpload from '@/components/documents/GlobalDocumentUpload';
 
 interface AdminSettings {
   id: string;
@@ -266,6 +267,9 @@ You can reference uploaded documents to help with business tasks, generate invoi
             </CardContent>
           </Card>
         </div>
+
+        {/* Global Documents */}
+        <GlobalDocumentUpload />
 
         {/* Global Prompt */}
         <Card>
