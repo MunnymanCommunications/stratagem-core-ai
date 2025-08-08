@@ -23,7 +23,14 @@ export type Database = {
           global_prompt: string
           id: string
           max_base_documents: number
+          max_enterprise_documents: number
           max_pro_documents: number
+          price_base_cents: number
+          price_enterprise_cents: number
+          price_pro_cents: number
+          stripe_price_id_base: string | null
+          stripe_price_id_enterprise: string | null
+          stripe_price_id_pro: string | null
           updated_at: string
         }
         Insert: {
@@ -34,7 +41,14 @@ export type Database = {
           global_prompt?: string
           id?: string
           max_base_documents?: number
+          max_enterprise_documents?: number
           max_pro_documents?: number
+          price_base_cents?: number
+          price_enterprise_cents?: number
+          price_pro_cents?: number
+          stripe_price_id_base?: string | null
+          stripe_price_id_enterprise?: string | null
+          stripe_price_id_pro?: string | null
           updated_at?: string
         }
         Update: {
@@ -45,7 +59,14 @@ export type Database = {
           global_prompt?: string
           id?: string
           max_base_documents?: number
+          max_enterprise_documents?: number
           max_pro_documents?: number
+          price_base_cents?: number
+          price_enterprise_cents?: number
+          price_pro_cents?: number
+          stripe_price_id_base?: string | null
+          stripe_price_id_enterprise?: string | null
+          stripe_price_id_pro?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -217,6 +238,48 @@ export type Database = {
         }
         Relationships: []
       }
+      subscribers: {
+        Row: {
+          account_locked: boolean
+          created_at: string
+          email: string
+          id: string
+          lock_reason: string | null
+          stripe_customer_id: string | null
+          subscribed: boolean
+          subscription_end: string | null
+          subscription_tier: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          account_locked?: boolean
+          created_at?: string
+          email: string
+          id?: string
+          lock_reason?: string | null
+          stripe_customer_id?: string | null
+          subscribed?: boolean
+          subscription_end?: string | null
+          subscription_tier?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          account_locked?: boolean
+          created_at?: string
+          email?: string
+          id?: string
+          lock_reason?: string | null
+          stripe_customer_id?: string | null
+          subscribed?: boolean
+          subscription_end?: string | null
+          subscription_tier?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       user_documents: {
         Row: {
           created_at: string
@@ -246,6 +309,27 @@ export type Database = {
           id?: string
           mime_type?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
         Relationships: []
@@ -298,9 +382,16 @@ export type Database = {
           mime_type: string
         }[]
       }
+      has_role: {
+        Args: {
+          _user_id: string
+          _role: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -427,6 +518,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "user"],
+    },
   },
 } as const
