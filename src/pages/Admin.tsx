@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Settings, Brain, Key, Users, FileText, Save } from 'lucide-react';
+import { Settings, Brain, Key, Users, FileText, Save, CreditCard } from 'lucide-react';
 import GlobalDocumentUpload from '@/components/documents/GlobalDocumentUpload';
 
 interface AdminSettings {
@@ -20,19 +20,28 @@ interface AdminSettings {
   global_prompt: string;
   max_base_documents: number;
   max_pro_documents: number;
+  max_enterprise_documents: number;
+  price_base_cents: number;
+  price_pro_cents: number;
+  price_enterprise_cents: number;
+  stripe_price_id_base: string | null;
+  stripe_price_id_pro: string | null;
+  stripe_price_id_enterprise: string | null;
   api_key_encrypted: string;
 }
 
 const Admin = () => {
-  const { user } = useAuth();
-  const [settings, setSettings] = useState<AdminSettings | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [apiKey, setApiKey] = useState('');
+const { user } = useAuth();
+const [settings, setSettings] = useState<AdminSettings | null>(null);
+const [loading, setLoading] = useState(true);
+const [saving, setSaving] = useState(false);
+const [apiKey, setApiKey] = useState('');
+const [stripeConfigured, setStripeConfigured] = useState<boolean | null>(null);
 
-  useEffect(() => {
-    fetchSettings();
-  }, []);
+useEffect(() => {
+  fetchSettings();
+  fetchStripeStatus();
+}, []);
 
   const fetchSettings = async () => {
     try {
@@ -57,6 +66,18 @@ const Admin = () => {
       toast.error('Failed to load admin settings');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchStripeStatus = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('stripe-config-status');
+      if (error) throw error;
+      setStripeConfigured(Boolean(data?.configured));
+    } catch (error) {
+      console.error('Error checking Stripe status:', error);
+      toast.error('Failed to check Stripe configuration');
+      setStripeConfigured(false);
     }
   };
 
@@ -98,7 +119,14 @@ You can reference uploaded documents to help with business tasks, generate invoi
         chat_completions_url: settings.chat_completions_url,
         global_prompt: settings.global_prompt,
         max_base_documents: settings.max_base_documents,
-        max_pro_documents: settings.max_pro_documents
+        max_pro_documents: settings.max_pro_documents,
+        max_enterprise_documents: settings.max_enterprise_documents,
+        price_base_cents: settings.price_base_cents,
+        price_pro_cents: settings.price_pro_cents,
+        price_enterprise_cents: settings.price_enterprise_cents,
+        stripe_price_id_base: settings.stripe_price_id_base,
+        stripe_price_id_pro: settings.stripe_price_id_pro,
+        stripe_price_id_enterprise: settings.stripe_price_id_enterprise,
       };
 
       // Only include API key if it's been changed
@@ -266,6 +294,112 @@ You can reference uploaded documents to help with business tasks, generate invoi
               </div>
             </CardContent>
           </Card>
+          {/* Billing & Stripe */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CreditCard className="h-5 w-5" />
+                Billing & Stripe
+              </CardTitle>
+              <CardDescription>
+                Set plan prices and configure Stripe integration status
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="priceBase">Basic Price (cents)</Label>
+                  <Input
+                    id="priceBase"
+                    type="number"
+                    value={settings.price_base_cents ?? 0}
+                    onChange={(e) => setSettings(prev => prev ? { ...prev, price_base_cents: parseInt(e.target.value || '0') } : null)}
+                    min="0"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="pricePro">Pro Price (cents)</Label>
+                  <Input
+                    id="pricePro"
+                    type="number"
+                    value={settings.price_pro_cents ?? 0}
+                    onChange={(e) => setSettings(prev => prev ? { ...prev, price_pro_cents: parseInt(e.target.value || '0') } : null)}
+                    min="0"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="priceEnt">Enterprise Price (cents)</Label>
+                  <Input
+                    id="priceEnt"
+                    type="number"
+                    value={settings.price_enterprise_cents ?? 0}
+                    onChange={(e) => setSettings(prev => prev ? { ...prev, price_enterprise_cents: parseInt(e.target.value || '0') } : null)}
+                    min="0"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="maxEntDocs">Enterprise Doc Limit</Label>
+                  <Input
+                    id="maxEntDocs"
+                    type="number"
+                    value={settings.max_enterprise_documents ?? 20}
+                    onChange={(e) => setSettings(prev => prev ? { ...prev, max_enterprise_documents: parseInt(e.target.value || '0') } : null)}
+                    min="1"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="priceIdBase">Stripe Price ID (Basic)</Label>
+                  <Input
+                    id="priceIdBase"
+                    value={settings.stripe_price_id_base || ''}
+                    onChange={(e) => setSettings(prev => prev ? { ...prev, stripe_price_id_base: e.target.value } : null)}
+                    placeholder="price_..."
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="priceIdPro">Stripe Price ID (Pro)</Label>
+                  <Input
+                    id="priceIdPro"
+                    value={settings.stripe_price_id_pro || ''}
+                    onChange={(e) => setSettings(prev => prev ? { ...prev, stripe_price_id_pro: e.target.value } : null)}
+                    placeholder="price_..."
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="priceIdEnt">Stripe Price ID (Enterprise)</Label>
+                  <Input
+                    id="priceIdEnt"
+                    value={settings.stripe_price_id_enterprise || ''}
+                    onChange={(e) => setSettings(prev => prev ? { ...prev, stripe_price_id_enterprise: e.target.value } : null)}
+                    placeholder="price_..."
+                  />
+                </div>
+              </div>
+              <div className="p-4 bg-muted rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-medium">Stripe Secret</h4>
+                    <p className="text-sm text-muted-foreground">Configured in Supabase Edge Function secrets</p>
+                  </div>
+                  <Badge variant={stripeConfigured ? 'secondary' : 'outline'}>
+                    {stripeConfigured ? 'Configured' : 'Not Set'}
+                  </Badge>
+                </div>
+                <div className="mt-3 flex gap-2">
+                  <Button type="button" variant="outline" onClick={fetchStripeStatus}>Refresh Status</Button>
+                  <a
+                    className="underline text-sm self-center"
+                    href={`https://supabase.com/dashboard/project/gzgncmpytstovexfazdw/settings/functions`}
+                    target="_blank" rel="noreferrer"
+                  >
+                    Open Supabase Secrets
+                  </a>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Global Documents */}
@@ -342,6 +476,12 @@ You can reference uploaded documents to help with business tasks, generate invoi
                     <span className="text-sm">API Key</span>
                     <Badge variant={settings.api_key_encrypted ? 'secondary' : 'outline'}>
                       {settings.api_key_encrypted ? 'Configured' : 'Not Set'}
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">Stripe Secret</span>
+                    <Badge variant={stripeConfigured ? 'secondary' : 'outline'}>
+                      {stripeConfigured ? 'Configured' : 'Not Set'}
                     </Badge>
                   </div>
                 </div>

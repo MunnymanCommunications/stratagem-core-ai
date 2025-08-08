@@ -1,1 +1,4 @@
 project_id = "gzgncmpytstovexfazdw"
+
+[functions.stripe-config-status]
+verify_jwt = true
