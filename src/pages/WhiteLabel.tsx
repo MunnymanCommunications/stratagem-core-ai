@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Layout from '@/components/layout/Layout';
+import SEO from '@/components/seo/SEO';
 import AddPartnerDialog from '@/components/dialogs/AddPartnerDialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -49,6 +50,11 @@ const WhiteLabel = () => {
 
   return (
     <Layout>
+      <SEO
+        title="White‑Label Management — DesignR AI"
+        description="Customize branding, domains, and partners for white‑label."
+        canonical="/white-label"
+      />
       <div className="max-w-6xl mx-auto space-y-6">
         <header>
           <h1 className="text-3xl font-bold">White-Label Management</h1>

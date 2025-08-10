@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import Layout from '@/components/layout/Layout';
+import SEO from '@/components/seo/SEO';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -121,6 +122,11 @@ const Analytics = () => {
 
   return (
     <Layout>
+      <SEO
+        title="Analytics Dashboard — DesignR AI"
+        description="Track conversations, documents, and usage metrics."
+        canonical="/analytics"
+      />
       <div className="max-w-6xl mx-auto space-y-6">
         <header>
           <h1 className="text-3xl font-bold">Analytics Dashboard</h1>

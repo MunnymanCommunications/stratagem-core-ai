@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import Layout from '@/components/layout/Layout';
+import SEO from '@/components/seo/SEO';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -32,6 +33,11 @@ const Index = () => {
 
   return (
     <Layout>
+      <SEO
+        title="DesignR AI Dashboard — Business Assistant"
+        description="Manage chat, documents, analytics, and tools with DesignR AI."
+        canonical="/"
+      />
       <div className="max-w-6xl mx-auto">
         <header className="mb-8">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">

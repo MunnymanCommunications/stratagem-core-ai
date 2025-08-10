@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import Layout from '@/components/layout/Layout';
+import SEO from '@/components/seo/SEO';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -137,6 +138,11 @@ const Profile = () => {
 
   return (
     <Layout>
+      <SEO
+        title="Profile Settings — DesignR AI"
+        description="Manage your account, company, and preferences."
+        canonical="/profile"
+      />
       <div className="max-w-4xl mx-auto space-y-6">
         <header>
           <h1 className="text-3xl font-bold">Profile Settings</h1>

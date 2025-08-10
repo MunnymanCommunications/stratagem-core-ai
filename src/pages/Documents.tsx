@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import Layout from '@/components/layout/Layout';
+import SEO from '@/components/seo/SEO';
 import FileUpload from '@/components/documents/FileUpload';
 import DocumentList from '@/components/documents/DocumentList';
 import GeneratedDocuments from '@/components/documents/GeneratedDocuments';
@@ -69,6 +70,11 @@ const Documents = () => {
 
   return (
     <Layout>
+      <SEO
+        title="Document Management — DesignR AI"
+        description="Upload, manage, and process documents for AI-powered workflows."
+        canonical="/documents"
+      />
       <div className="max-w-6xl mx-auto space-y-6">
         <header>
           <h1 className="text-3xl font-bold">Document Management</h1>

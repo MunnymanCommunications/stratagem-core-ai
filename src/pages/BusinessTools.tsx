@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Layout from '@/components/layout/Layout';
+import SEO from '@/components/seo/SEO';
 import InvoiceGenerator from '@/components/business/InvoiceGenerator';
 import ProposalGenerator from '@/components/business/ProposalGenerator';
 import BusinessCalculators from '@/components/business/BusinessCalculators';
@@ -54,6 +55,11 @@ const BusinessTools = () => {
 
   return (
     <Layout>
+      <SEO
+        title="Business Tools — Invoices, Proposals, Calculators"
+        description="Generate invoices and proposals and run business calculators."
+        canonical="/business-tools"
+      />
       <div className="max-w-6xl mx-auto space-y-6">
         <header>
           <h1 className="text-3xl font-bold">Business Tools</h1>

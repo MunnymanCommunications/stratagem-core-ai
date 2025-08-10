@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import Layout from '@/components/layout/Layout';
+import SEO from '@/components/seo/SEO';
 import QuickActions from '@/components/chat/QuickActions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -237,6 +238,11 @@ const Chat = () => {
 
   return (
     <Layout>
+      <SEO
+        title="AI Assistant Chat — DesignR AI"
+        description="Chat with your AI assistant for proposals, invoices, and analysis."
+        canonical="/chat"
+      />
       <div className="max-w-7xl mx-auto h-[calc(100vh-8rem)]">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-full">
           {/* Conversations Sidebar */}

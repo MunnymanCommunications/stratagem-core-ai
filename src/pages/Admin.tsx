@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import Layout from '@/components/layout/Layout';
+import SEO from '@/components/seo/SEO';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -204,6 +205,11 @@ You can reference uploaded documents to help with business tasks, generate invoi
 
   return (
     <Layout>
+      <SEO
+        title="Admin Settings — DesignR AI"
+        description="Configure AI, limits, billing, and global assets."
+        canonical="/admin"
+      />
       <div className="max-w-6xl mx-auto space-y-6">
         <header>
           <h1 className="text-3xl font-bold">Admin Settings</h1>
