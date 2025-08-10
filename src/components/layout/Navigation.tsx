@@ -14,14 +14,30 @@ import {
   CreditCard,
   Settings,
   LogOut,
-  User
+  User,
+  Sun,
+  Moon
 } from 'lucide-react';
+import { useTheme } from 'next-themes';
 
 const Navigation = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
+  const { theme, setTheme } = useTheme();
+
+  const ThemeToggle = () => (
+    <Button
+      variant="ghost"
+      size="icon"
+      aria-label="Toggle theme"
+      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+    >
+      <Sun className="h-5 w-5 hidden dark:block" />
+      <Moon className="h-5 w-5 block dark:hidden" />
+    </Button>
+  );
 
   const navItems = [
     { path: '/', label: 'Dashboard', icon: Home },
@@ -50,10 +66,11 @@ const Navigation = () => {
       {/* Desktop Navigation */}
       <div className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 lg:bg-card lg:border-r lg:border-border">
         <div className="flex flex-col flex-grow pt-5 pb-4 overflow-y-auto">
-          <div className="flex items-center flex-shrink-0 px-4">
+          <div className="flex items-center justify-between flex-shrink-0 px-4">
             <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
               DesignR AI
             </h1>
+            <ThemeToggle />
           </div>
           <div className="mt-8 flex flex-col flex-grow">
             <nav className="flex-1 px-2 space-y-1">
@@ -100,13 +117,15 @@ const Navigation = () => {
           <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
             DesignR AI
           </h1>
-          <Sheet open={isOpen} onOpenChange={setIsOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <Menu className="h-6 w-6" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-64">
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Sheet open={isOpen} onOpenChange={setIsOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Menu className="h-6 w-6" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-64">
               <div className="flex flex-col h-full">
                 <div className="flex-1 pt-6">
                   <nav className="space-y-1">
@@ -149,6 +168,7 @@ const Navigation = () => {
           </Sheet>
         </div>
       </div>
+    </div>
     </>
   );
 };

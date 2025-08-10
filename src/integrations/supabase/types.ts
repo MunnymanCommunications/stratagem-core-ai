@@ -184,6 +184,45 @@ export type Database = {
         }
         Relationships: []
       }
+      invite_tokens: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          max_uses: number
+          subscription_tier: string | null
+          target_role: Database["public"]["Enums"]["app_role"]
+          token: string
+          updated_at: string
+          uses: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          max_uses?: number
+          subscription_tier?: string | null
+          target_role: Database["public"]["Enums"]["app_role"]
+          token: string
+          updated_at?: string
+          uses?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          max_uses?: number
+          subscription_tier?: string | null
+          target_role?: Database["public"]["Enums"]["app_role"]
+          token?: string
+          updated_at?: string
+          uses?: number
+        }
+        Relationships: []
+      }
       login: {
         Row: {
           Company: Json | null

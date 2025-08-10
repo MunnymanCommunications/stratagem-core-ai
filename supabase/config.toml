@@ -2,3 +2,6 @@ project_id = "gzgncmpytstovexfazdw"
 
 [functions.stripe-config-status]
 verify_jwt = true
+
+[functions.claim-invite]
+verify_jwt = true
