@@ -19,6 +19,7 @@ import {
   Moon
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
+import { useRoles } from '@/hooks/useRoles';
 
 const Navigation = () => {
   const { user, signOut } = useAuth();
@@ -26,7 +27,7 @@ const Navigation = () => {
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const { theme, setTheme } = useTheme();
-
+  const { isAdmin } = useRoles();
   const ThemeToggle = () => (
     <Button
       variant="ghost"
@@ -74,7 +75,7 @@ const Navigation = () => {
           </div>
           <div className="mt-8 flex flex-col flex-grow">
             <nav className="flex-1 px-2 space-y-1">
-              {navItems.map((item) => {
+              {navItems.filter(item => item.path !== '/admin' || isAdmin).map((item) => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.path;
                 return (
@@ -129,7 +130,7 @@ const Navigation = () => {
               <div className="flex flex-col h-full">
                 <div className="flex-1 pt-6">
                   <nav className="space-y-1">
-                    {navItems.map((item) => {
+                    {navItems.filter(item => item.path !== '/admin' || isAdmin).map((item) => {
                       const Icon = item.icon;
                       const isActive = location.pathname === item.path;
                       return (

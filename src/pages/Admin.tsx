@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Settings, Brain, Key, Users, FileText, Save, CreditCard } from 'lucide-react';
 import GlobalDocumentUpload from '@/components/documents/GlobalDocumentUpload';
+import { useRoles } from '@/hooks/useRoles';
 
 interface AdminSettings {
   id: string;
@@ -37,6 +38,7 @@ const [loading, setLoading] = useState(true);
 const [saving, setSaving] = useState(false);
 const [apiKey, setApiKey] = useState('');
 const [stripeConfigured, setStripeConfigured] = useState<boolean | null>(null);
+const { isAdmin, loading: rolesLoading } = useRoles();
 
 useEffect(() => {
   fetchSettings();
@@ -149,6 +151,31 @@ You can reference uploaded documents to help with business tasks, generate invoi
       setSaving(false);
     }
   };
+
+  if (rolesLoading) {
+    return (
+      <Layout>
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center py-8">
+            <h2 className="text-2xl font-semibold mb-2">Loading Permissions...</h2>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <Layout>
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center py-8">
+            <h2 className="text-2xl font-semibold mb-2">Access Denied</h2>
+            <p className="text-muted-foreground">You need admin privileges to view this page.</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   if (loading) {
     return (
