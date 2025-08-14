@@ -61,19 +61,17 @@ const UserAnalytics = () => {
       if (usersError) throw usersError;
 
       // Get document counts per user
-      const { data: docCounts, error: docError } = await supabase
+      const { data: docsData, error: docError } = await supabase
         .from('user_documents')
-        .select('user_id, id')
-        .then(({ data, error }) => {
-          if (error) throw error;
-          const counts: Record<string, number> = {};
-          data?.forEach(doc => {
-            counts[doc.user_id] = (counts[doc.user_id] || 0) + 1;
-          });
-          return { data: counts, error: null };
-        });
+        .select('user_id');
 
       if (docError) throw docError;
+      
+      const docCounts: Record<string, number> = {};
+      docsData?.forEach(doc => {
+        docCounts[doc.user_id] = (docCounts[doc.user_id] || 0) + 1;
+      });
+
 
       // Get conversation counts per user
       const { data: convCounts, error: convError } = await supabase

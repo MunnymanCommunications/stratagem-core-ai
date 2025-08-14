@@ -4,6 +4,9 @@ import { useAuth } from '@/hooks/useAuth';
 import Layout from '@/components/layout/Layout';
 import SEO from '@/components/seo/SEO';
 import QuickActions from '@/components/chat/QuickActions';
+import ConversationList from '@/components/chat/ConversationList';
+import MessageFormatter from '@/components/chat/MessageFormatter';
+import DocumentEditor from '@/components/documents/DocumentEditor';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -33,6 +36,9 @@ const Chat = () => {
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [activeAction, setActiveAction] = useState<string | null>(null);
+  const [showDocumentEditor, setShowDocumentEditor] = useState(false);
+  const [generatedContent, setGeneratedContent] = useState('');
+  const [streamingMessage, setStreamingMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -155,28 +161,65 @@ const Chat = () => {
         created_at: userMessageData.created_at
       }]);
 
-      // Call AI API
+      // Call AI API with streaming
       const conversationHistory = messages.map(msg => ({
         role: msg.role,
         content: msg.content
       }));
 
-      const { data: aiData, error: aiApiError } = await supabase.functions.invoke('ai-chat', {
-        body: {
-          message: userMessage,
-          conversationHistory,
-          userId: user?.id
-        }
-      });
+      setStreamingMessage('');
+      let fullResponse = '';
 
-      let aiResponse = "I'm having trouble connecting to my AI services right now. Please try again in a moment.";
-      
-      if (aiApiError) {
-        console.error('AI API error:', aiApiError);
+      try {
+        const response = await fetch(`https://gzgncmpytstovexfazdw.supabase.co/functions/v1/ai-chat`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd6Z25jbXB5dHN0b3ZleGZhemR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQzMjY5MDEsImV4cCI6MjA2OTkwMjkwMX0.MXGmZChk2ytt2NQX5kDqiXxN2h4RiC2zD5EDN9wlJtc`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message: userMessage,
+            conversationHistory,
+            userId: user?.id
+          })
+        });
+
+        if (!response.ok) throw new Error('Failed to get AI response');
+
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+
+        if (reader) {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6));
+                  if (data.content) {
+                    fullResponse += data.content;
+                    setStreamingMessage(fullResponse);
+                  }
+                } catch (e) {
+                  // Skip invalid JSON
+                }
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Streaming error:', error);
+        fullResponse = "I'm having trouble connecting to my AI services right now. Please try again in a moment.";
         toast.error('Failed to get AI response');
-      } else if (aiData?.response) {
-        aiResponse = aiData.response;
       }
+
+      setStreamingMessage('');
+      const aiResponse = fullResponse;
 
       // Add AI response to database
       const { data: aiMessageData, error: aiError } = await supabase
@@ -233,7 +276,23 @@ const Chat = () => {
   };
 
   const handleActionSelect = (actionId: string) => {
-    setActiveAction(activeAction === actionId ? null : actionId);
+    if (activeAction === actionId) {
+      setActiveAction(null);
+    } else {
+      setActiveAction(actionId);
+      // If clicking on a highlighted action, show document editor
+      if (actionId === 'generate-proposal' || actionId === 'generate-invoice') {
+        setShowDocumentEditor(true);
+        setGeneratedContent('Please send a message first to generate content for the document.');
+      }
+    }
+  };
+
+  const refreshConversations = () => {
+    fetchConversations();
+    if (currentConversation) {
+      fetchMessages(currentConversation);
+    }
   };
 
   return (
@@ -258,29 +317,12 @@ const Chat = () => {
               </CardHeader>
               <CardContent className="p-0">
                 <ScrollArea className="h-[calc(100vh-12rem)]">
-                  <div className="space-y-2 p-4">
-                    {conversations.map((conversation) => (
-                      <div
-                        key={conversation.id}
-                        onClick={() => setCurrentConversation(conversation.id)}
-                        className={`p-3 rounded-lg cursor-pointer transition-colors ${
-                          currentConversation === conversation.id
-                            ? 'bg-primary text-primary-foreground'
-                            : 'hover:bg-muted'
-                        }`}
-                      >
-                        <p className="font-medium truncate">{conversation.title}</p>
-                        <p className="text-xs opacity-70">
-                          {new Date(conversation.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                    ))}
-                    {conversations.length === 0 && (
-                      <p className="text-muted-foreground text-center py-8">
-                        No conversations yet. Start a new one!
-                      </p>
-                    )}
-                  </div>
+                  <ConversationList
+                    conversations={conversations}
+                    currentConversation={currentConversation}
+                    onConversationSelect={setCurrentConversation}
+                    onConversationDeleted={refreshConversations}
+                  />
                 </ScrollArea>
               </CardContent>
             </Card>
@@ -321,7 +363,7 @@ const Chat = () => {
                                   : 'bg-muted'
                               }`}
                             >
-                              <p className="whitespace-pre-wrap">{message.content}</p>
+                              <MessageFormatter content={message.content} />
                               <p className="text-xs opacity-70 mt-2">
                                 {new Date(message.created_at).toLocaleTimeString()}
                               </p>
@@ -333,17 +375,21 @@ const Chat = () => {
                             )}
                           </div>
                         ))}
-                        {isLoading && (
+                        {(isLoading || streamingMessage) && (
                           <div className="flex gap-3 justify-start">
                             <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
                               <Bot className="h-4 w-4 text-primary-foreground" />
                             </div>
-                            <div className="bg-muted p-3 rounded-lg">
-                              <div className="flex space-x-1">
-                                <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />
-                                <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                                <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-                              </div>
+                            <div className="bg-muted p-3 rounded-lg max-w-[80%]">
+                              {streamingMessage ? (
+                                <MessageFormatter content={streamingMessage} />
+                              ) : (
+                                <div className="flex space-x-1">
+                                  <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />
+                                  <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                                  <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                                </div>
+                              )}
                             </div>
                           </div>
                         )}
@@ -390,6 +436,15 @@ const Chat = () => {
             </Card>
           </div>
         </div>
+
+        {/* Document Editor Modal */}
+        <DocumentEditor
+          isOpen={showDocumentEditor}
+          onClose={() => setShowDocumentEditor(false)}
+          documentType={activeAction === 'generate-proposal' ? 'proposal' : 'invoice'}
+          aiGeneratedContent={generatedContent}
+          clientName="Client"
+        />
       </div>
     </Layout>
   );
