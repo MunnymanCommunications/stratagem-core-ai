@@ -47,7 +47,26 @@ const DocumentEditor = ({
         setCompanyTemplate(template.companyInfo || null);
       }
 
-      setEditableContent(aiGeneratedContent);
+      // Ensure AI content is properly formatted and set
+      if (aiGeneratedContent && aiGeneratedContent.trim()) {
+        // Clean up the AI content and format it properly
+        let cleanContent = aiGeneratedContent
+          .replace(/^#{1,6}\s*/gm, '<h3>') // Convert markdown headers to h3
+          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold text
+          .replace(/\*(.*?)\*/g, '<em>$1</em>') // Italic text
+          .replace(/\n\n/g, '</p><p>') // Paragraphs
+          .replace(/\n/g, '<br>'); // Line breaks
+        
+        // Wrap in paragraphs if not already wrapped
+        if (!cleanContent.startsWith('<')) {
+          cleanContent = '<p>' + cleanContent + '</p>';
+        }
+        
+        setEditableContent(cleanContent);
+      } else {
+        setEditableContent('<p>Please generate content first using the AI chat, then click on the highlighted Generate Proposal/Invoice button.</p>');
+      }
+      
       setDocumentTitle(`${documentType.charAt(0).toUpperCase() + documentType.slice(1)} for ${clientName}`);
     }
   }, [isOpen, aiGeneratedContent, documentType, clientName]);

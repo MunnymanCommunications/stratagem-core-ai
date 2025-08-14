@@ -78,7 +78,7 @@ serve(async (req) => {
       console.error('Error fetching admin settings:', adminError);
     }
 
-    // Build context from documents with content extraction
+    // Build context from documents with actual content extraction
     let documentsContext = '';
     
     if (userDocs && userDocs.length > 0) {
@@ -86,21 +86,27 @@ serve(async (req) => {
       for (const doc of userDocs) {
         documentsContext += `- ${doc.filename} (${doc.mime_type})\n`;
         
-        // Extract content for PDFs and text files
+        // For PDFs, try to extract some content using the pdf-extractor function
         if (doc.mime_type === 'application/pdf') {
           try {
-            const { data: fileData, error: downloadError } = await supabase.storage
-              .from('user-uploads')
-              .download(doc.file_path);
+            const extractorResponse = await supabase.functions.invoke('pdf-extractor', {
+              body: { 
+                filePath: doc.file_path, 
+                bucket: 'user-uploads' 
+              }
+            });
             
-            if (!downloadError && fileData) {
-              // For edge function, we need to implement PDF parsing here
-              // For now, we'll indicate the file is available but content extraction
-              // needs to be implemented on the client side
-              documentsContext += `  Content: [PDF content available - ${Math.round(fileData.size / 1024)}KB]\n`;
+            if (extractorResponse.data?.success && extractorResponse.data?.content) {
+              // Limit content to avoid token limits
+              const content = extractorResponse.data.content;
+              const truncatedContent = content.length > 800 ? content.substring(0, 800) + '...' : content;
+              documentsContext += `  Content: ${truncatedContent}\n`;
+            } else {
+              documentsContext += `  Content: [PDF available - ${Math.round((doc.file_size || 0) / 1024)}KB]\n`;
             }
           } catch (error) {
-            console.error('Error processing document:', error);
+            console.error('Error extracting PDF content:', error);
+            documentsContext += `  Content: [PDF available - ${Math.round((doc.file_size || 0) / 1024)}KB]\n`;
           }
         }
       }
@@ -111,17 +117,27 @@ serve(async (req) => {
       for (const doc of globalDocs) {
         documentsContext += `- ${doc.filename} (${doc.mime_type})\n`;
         
+        // For PDFs, try to extract some content using the pdf-extractor function
         if (doc.mime_type === 'application/pdf') {
           try {
-            const { data: fileData, error: downloadError } = await supabase.storage
-              .from('global-uploads')
-              .download(doc.file_path);
+            const extractorResponse = await supabase.functions.invoke('pdf-extractor', {
+              body: { 
+                filePath: doc.file_path, 
+                bucket: 'global-uploads' 
+              }
+            });
             
-            if (!downloadError && fileData) {
-              documentsContext += `  Content: [PDF content available - ${Math.round(fileData.size / 1024)}KB]\n`;
+            if (extractorResponse.data?.success && extractorResponse.data?.content) {
+              // Limit content to avoid token limits
+              const content = extractorResponse.data.content;
+              const truncatedContent = content.length > 800 ? content.substring(0, 800) + '...' : content;
+              documentsContext += `  Content: ${truncatedContent}\n`;
+            } else {
+              documentsContext += `  Content: [PDF available - ${Math.round((doc.file_size || 0) / 1024)}KB]\n`;
             }
           } catch (error) {
-            console.error('Error processing global document:', error);
+            console.error('Error extracting global PDF content:', error);
+            documentsContext += `  Content: [PDF available - ${Math.round((doc.file_size || 0) / 1024)}KB]\n`;
           }
         }
       }
