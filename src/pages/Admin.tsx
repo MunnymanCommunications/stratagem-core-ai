@@ -11,9 +11,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Settings, Brain, Key, Users, FileText, Save, CreditCard } from 'lucide-react';
+import { Settings, Brain, Key, Users, FileText, Save, CreditCard, UserPlus, Activity } from 'lucide-react';
 import GlobalDocumentUpload from '@/components/documents/GlobalDocumentUpload';
 import { useRoles } from '@/hooks/useRoles';
+import InviteTokenManager from '@/components/admin/InviteTokenManager';
+import UserAnalytics from '@/components/admin/UserAnalytics';
+import StripeManager from '@/components/admin/StripeManager';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface AdminSettings {
   id: string;
@@ -212,11 +216,37 @@ You can reference uploaded documents to help with business tasks, generate invoi
       />
       <div className="max-w-6xl mx-auto space-y-6">
         <header>
-          <h1 className="text-3xl font-bold">Admin Settings</h1>
+          <h1 className="text-3xl font-bold">Master Admin Portal</h1>
           <p className="text-muted-foreground mt-2">
-            Configure global platform settings and AI parameters
+            Complete platform control: settings, users, analytics, and billing
           </p>
         </header>
+
+        <Tabs defaultValue="settings" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="settings" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Settings
+            </TabsTrigger>
+            <TabsTrigger value="users" className="flex items-center gap-2">
+              <UserPlus className="h-4 w-4" />
+              User Management
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="flex items-center gap-2">
+              <Activity className="h-4 w-4" />
+              Analytics
+            </TabsTrigger>
+            <TabsTrigger value="stripe" className="flex items-center gap-2">
+              <CreditCard className="h-4 w-4" />
+              Stripe
+            </TabsTrigger>
+            <TabsTrigger value="documents" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Documents
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="settings" className="space-y-6">
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* AI Configuration */}
@@ -435,8 +465,6 @@ You can reference uploaded documents to help with business tasks, generate invoi
           </Card>
         </div>
 
-        {/* Global Documents */}
-        <GlobalDocumentUpload />
 
         {/* Global Prompt */}
         <Card>
@@ -471,77 +499,99 @@ You can reference uploaded documents to help with business tasks, generate invoi
           </CardContent>
         </Card>
 
-        {/* Save Button */}
-        <div className="flex justify-end">
-          <Button onClick={updateSettings} disabled={saving} size="lg">
-            <Save className="h-4 w-4 mr-2" />
-            {saving ? 'Saving...' : 'Save Settings'}
-          </Button>
-        </div>
-
-        {/* System Status */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Settings className="h-5 w-5" />
-              System Status
-            </CardTitle>
-            <CardDescription>
-              Current system configuration and status
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h4 className="font-medium mb-3">Configuration Status</h4>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">AI Model</span>
-                    <Badge variant="secondary">{settings.ai_model}</Badge>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">API Endpoint</span>
-                    <Badge variant={settings.chat_completions_url ? 'secondary' : 'outline'}>
-                      {settings.chat_completions_url ? 'Configured' : 'Not Set'}
-                    </Badge>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">API Key</span>
-                    <Badge variant={settings.api_key_encrypted ? 'secondary' : 'outline'}>
-                      {settings.api_key_encrypted ? 'Configured' : 'Not Set'}
-                    </Badge>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Stripe Secret</span>
-                    <Badge variant={stripeConfigured ? 'secondary' : 'outline'}>
-                      {stripeConfigured ? 'Configured' : 'Not Set'}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h4 className="font-medium mb-3">Platform Limits</h4>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Base Users</span>
-                    <Badge variant="secondary">{settings.max_base_documents} docs max</Badge>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Pro Users</span>
-                    <Badge variant="secondary">{settings.max_pro_documents} docs max</Badge>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Global Prompt</span>
-                    <Badge variant="secondary">
-                      {settings.global_prompt.length} characters
-                    </Badge>
-                  </div>
-                </div>
-              </div>
+            {/* Save Button */}
+            <div className="flex justify-end">
+              <Button onClick={updateSettings} disabled={saving} size="lg">
+                <Save className="h-4 w-4 mr-2" />
+                {saving ? 'Saving...' : 'Save Settings'}
+              </Button>
             </div>
-          </CardContent>
-        </Card>
+
+            {/* System Status */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  System Status
+                </CardTitle>
+                <CardDescription>
+                  Current system configuration and status
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h4 className="font-medium mb-3">Configuration Status</h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">AI Model</span>
+                        <Badge variant="secondary">{settings.ai_model}</Badge>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">API Endpoint</span>
+                        <Badge variant={settings.chat_completions_url ? 'secondary' : 'outline'}>
+                          {settings.chat_completions_url ? 'Configured' : 'Not Set'}
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">API Key</span>
+                        <Badge variant={settings.api_key_encrypted ? 'secondary' : 'outline'}>
+                          {settings.api_key_encrypted ? 'Configured' : 'Not Set'}
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Stripe Secret</span>
+                        <Badge variant={stripeConfigured ? 'secondary' : 'outline'}>
+                          {stripeConfigured ? 'Configured' : 'Not Set'}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-medium mb-3">Platform Limits</h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Base Users</span>
+                        <Badge variant="secondary">{settings.max_base_documents} docs max</Badge>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Pro Users</span>
+                        <Badge variant="secondary">{settings.max_pro_documents} docs max</Badge>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Enterprise Users</span>
+                        <Badge variant="secondary">{settings.max_enterprise_documents} docs max</Badge>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Global Prompt</span>
+                        <Badge variant="secondary">
+                          {settings.global_prompt.length} characters
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="users">
+            <InviteTokenManager />
+          </TabsContent>
+
+          <TabsContent value="analytics">
+            <UserAnalytics />
+          </TabsContent>
+
+          <TabsContent value="stripe">
+            <StripeManager />
+          </TabsContent>
+
+          <TabsContent value="documents">
+            <GlobalDocumentUpload />
+          </TabsContent>
+        </Tabs>
       </div>
     </Layout>
   );
