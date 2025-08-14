@@ -243,6 +243,12 @@ const Chat = () => {
         created_at: aiMessageData.created_at
       }]);
 
+      // Check if this is a document generation action and open editor
+      if (activeAction === 'generate-proposal' || activeAction === 'generate-invoice') {
+        setGeneratedContent(aiResponse);
+        setShowDocumentEditor(true);
+      }
+
       // Update conversation title if it's the first message
       if (messages.length === 0) {
         const title = userMessage.substring(0, 50) + (userMessage.length > 50 ? '...' : '');
@@ -280,11 +286,6 @@ const Chat = () => {
       setActiveAction(null);
     } else {
       setActiveAction(actionId);
-      // If clicking on a highlighted action, show document editor
-      if (actionId === 'generate-proposal' || actionId === 'generate-invoice') {
-        setShowDocumentEditor(true);
-        setGeneratedContent('Please send a message first to generate content for the document.');
-      }
     }
   };
 

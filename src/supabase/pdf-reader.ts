@@ -1,6 +1,5 @@
 // Enhanced PDF reading functionality for AI chat
-// This would be implemented with a PDF parsing library like pdf-parse
-// For now, this is a placeholder that could be expanded
+import { supabase } from '@/integrations/supabase/client';
 
 export interface DocumentContent {
   filename: string;
@@ -12,15 +11,34 @@ export interface DocumentContent {
   };
 }
 
-// Placeholder function for PDF content extraction
+// PDF content extraction using pdf-parse
 export const extractPDFContent = async (filePath: string): Promise<string> => {
-  // In a real implementation, this would:
-  // 1. Download the file from Supabase Storage
-  // 2. Use a PDF parsing library to extract text
-  // 3. Return the extracted content
-  
-  console.log('PDF content extraction would be implemented here for:', filePath);
-  return 'PDF content extraction not yet implemented. Please implement with pdf-parse or similar library.';
+  try {
+    // Download the file from Supabase Storage
+    const { data, error } = await supabase.storage
+      .from('user-uploads')
+      .download(filePath);
+
+    if (error) {
+      console.error('Error downloading PDF:', error);
+      return 'Error: Could not download PDF file';
+    }
+
+    // Convert blob to array buffer
+    const arrayBuffer = await data.arrayBuffer();
+    const buffer = new Uint8Array(arrayBuffer);
+
+    // Import pdf-parse dynamically for client-side usage
+    const pdf = await import('pdf-parse/lib/pdf-parse.js');
+    
+    // Extract text from PDF
+    const pdfData = await pdf.default(buffer);
+    
+    return pdfData.text || 'No text content found in PDF';
+  } catch (error) {
+    console.error('Error extracting PDF content:', error);
+    return 'Error: Could not extract text from PDF file';
+  }
 };
 
 // Enhanced document context builder for AI
