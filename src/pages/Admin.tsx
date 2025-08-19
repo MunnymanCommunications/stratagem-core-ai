@@ -70,7 +70,10 @@ useEffect(() => {
           throw error;
         }
       } else {
-        setSettings(data);
+        setSettings({
+          ...data,
+          platform_prompt: data.platform_prompt || null
+        });
       }
     } catch (error) {
       console.error('Error fetching admin settings:', error);
@@ -107,13 +110,17 @@ useEffect(() => {
 
 You can reference uploaded documents to help with business tasks, generate invoices based on pricing documents, and provide assistance with various business operations. Always be professional and helpful.`,
           max_base_documents: 1,
-          max_pro_documents: 5
+          max_pro_documents: 5,
+          platform_prompt: null
         })
         .select()
         .single();
 
       if (error) throw error;
-      setSettings(data);
+      setSettings({
+        ...data,
+        platform_prompt: data.platform_prompt || null
+      });
     } catch (error) {
       console.error('Error creating default settings:', error);
       toast.error('Failed to create default settings');
@@ -424,6 +431,17 @@ You can reference uploaded documents to help with business tasks, generate invoi
                 />
               </div>
 
+              <div>
+                <Label htmlFor="entLimit">Enterprise Tier Document Limit</Label>
+                <Input
+                  id="entLimit"
+                  type="number"
+                  value={settings.max_enterprise_documents}
+                  onChange={(e) => setSettings(prev => prev ? { ...prev, max_enterprise_documents: parseInt(e.target.value) } : null)}
+                  min="1"
+                />
+              </div>
+
               <div className="p-4 bg-muted rounded-lg">
                 <h4 className="font-medium mb-2">Current Limits</h4>
                 <div className="space-y-1 text-sm">
@@ -435,151 +453,43 @@ You can reference uploaded documents to help with business tasks, generate invoi
                     <span>Pro Tier:</span>
                     <Badge variant="secondary">{settings.max_pro_documents} documents</Badge>
                   </div>
+                  <div className="flex justify-between">
+                    <span>Enterprise Tier:</span>
+                    <Badge variant="secondary">{settings.max_enterprise_documents} documents</Badge>
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
-          {/* Billing & Stripe */}
+
+          {/* Global Prompt */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <CreditCard className="h-5 w-5" />
-                Billing & Stripe
+                <FileText className="h-5 w-5" />
+                Global AI Prompt
               </CardTitle>
               <CardDescription>
-                Set plan prices and configure Stripe integration status
+                Configure the global prompt that provides context to the AI assistant
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="priceBase">Basic Price (cents)</Label>
-                  <Input
-                    id="priceBase"
-                    type="number"
-                    value={settings.price_base_cents ?? 0}
-                    onChange={(e) => setSettings(prev => prev ? { ...prev, price_base_cents: parseInt(e.target.value || '0') } : null)}
-                    min="0"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="pricePro">Pro Price (cents)</Label>
-                  <Input
-                    id="pricePro"
-                    type="number"
-                    value={settings.price_pro_cents ?? 0}
-                    onChange={(e) => setSettings(prev => prev ? { ...prev, price_pro_cents: parseInt(e.target.value || '0') } : null)}
-                    min="0"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="priceEnt">Enterprise Price (cents)</Label>
-                  <Input
-                    id="priceEnt"
-                    type="number"
-                    value={settings.price_enterprise_cents ?? 0}
-                    onChange={(e) => setSettings(prev => prev ? { ...prev, price_enterprise_cents: parseInt(e.target.value || '0') } : null)}
-                    min="0"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="maxEntDocs">Enterprise Doc Limit</Label>
-                  <Input
-                    id="maxEntDocs"
-                    type="number"
-                    value={settings.max_enterprise_documents ?? 20}
-                    onChange={(e) => setSettings(prev => prev ? { ...prev, max_enterprise_documents: parseInt(e.target.value || '0') } : null)}
-                    min="1"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="priceIdBase">Stripe Price ID (Basic)</Label>
-                  <Input
-                    id="priceIdBase"
-                    value={settings.stripe_price_id_base || ''}
-                    onChange={(e) => setSettings(prev => prev ? { ...prev, stripe_price_id_base: e.target.value } : null)}
-                    placeholder="price_..."
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="priceIdPro">Stripe Price ID (Pro)</Label>
-                  <Input
-                    id="priceIdPro"
-                    value={settings.stripe_price_id_pro || ''}
-                    onChange={(e) => setSettings(prev => prev ? { ...prev, stripe_price_id_pro: e.target.value } : null)}
-                    placeholder="price_..."
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="priceIdEnt">Stripe Price ID (Enterprise)</Label>
-                  <Input
-                    id="priceIdEnt"
-                    value={settings.stripe_price_id_enterprise || ''}
-                    onChange={(e) => setSettings(prev => prev ? { ...prev, stripe_price_id_enterprise: e.target.value } : null)}
-                    placeholder="price_..."
-                  />
-                </div>
-              </div>
-              <div className="p-4 bg-muted rounded-lg">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-medium">Stripe Secret</h4>
-                    <p className="text-sm text-muted-foreground">Configured in Supabase Edge Function secrets</p>
-                  </div>
-                  <Badge variant={stripeConfigured ? 'secondary' : 'outline'}>
-                    {stripeConfigured ? 'Configured' : 'Not Set'}
-                  </Badge>
-                </div>
-                <div className="mt-3 flex gap-2">
-                  <Button type="button" variant="outline" onClick={fetchStripeStatus}>Refresh Status</Button>
-                  <a
-                    className="underline text-sm self-center"
-                    href={`https://supabase.com/dashboard/project/gzgncmpytstovexfazdw/settings/functions`}
-                    target="_blank" rel="noreferrer"
-                  >
-                    Open Supabase Secrets
-                  </a>
-                </div>
+              <div>
+                <Label htmlFor="globalPrompt">Global AI Prompt</Label>
+                <Textarea
+                  id="globalPrompt"
+                  value={settings.global_prompt}
+                  onChange={(e) => setSettings(prev => prev ? { ...prev, global_prompt: e.target.value } : null)}
+                  rows={6}
+                  placeholder="Enter the global prompt for the AI assistant..."
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Use template variables: {'{'}company{'}'}, {'{'}full_name{'}'}, {'{'}email{'}'}
+                </p>
               </div>
             </CardContent>
           </Card>
         </div>
-
-
-        {/* Global Prompt */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Global AI Prompt
-            </CardTitle>
-            <CardDescription>
-              Configure the global prompt that provides context to the AI assistant
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="globalPrompt">System Prompt</Label>
-              <Textarea
-                id="globalPrompt"
-                value={settings.global_prompt}
-                onChange={(e) => setSettings(prev => prev ? { ...prev, global_prompt: e.target.value } : null)}
-                rows={10}
-                placeholder="Enter the global prompt that will be used for all AI interactions..."
-              />
-              <div className="mt-2 text-sm text-muted-foreground">
-                <p className="font-medium mb-1">Available variables:</p>
-                <ul className="space-y-1">
-                  <li><code className="bg-muted px-1 rounded">{'{{company}}'}</code> - User's company name</li>
-                  <li><code className="bg-muted px-1 rounded">{'{{full_name}}'}</code> - User's full name</li>
-                  <li><code className="bg-muted px-1 rounded">{'{{email}}'}</code> - User's email address</li>
-                </ul>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
             {/* Save Button */}
             <div className="flex justify-end">
@@ -589,73 +499,6 @@ You can reference uploaded documents to help with business tasks, generate invoi
               </Button>
             </div>
 
-            {/* System Status */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Settings className="h-5 w-5" />
-                  System Status
-                </CardTitle>
-                <CardDescription>
-                  Current system configuration and status
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h4 className="font-medium mb-3">Configuration Status</h4>
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm">AI Model</span>
-                        <Badge variant="secondary">{settings.ai_model}</Badge>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm">API Endpoint</span>
-                        <Badge variant={settings.chat_completions_url ? 'secondary' : 'outline'}>
-                          {settings.chat_completions_url ? 'Configured' : 'Not Set'}
-                        </Badge>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm">API Key</span>
-                        <Badge variant={settings.api_key_encrypted ? 'secondary' : 'outline'}>
-                          {settings.api_key_encrypted ? 'Configured' : 'Not Set'}
-                        </Badge>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm">Stripe Secret</span>
-                        <Badge variant={stripeConfigured ? 'secondary' : 'outline'}>
-                          {stripeConfigured ? 'Configured' : 'Not Set'}
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="font-medium mb-3">Platform Limits</h4>
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm">Base Users</span>
-                        <Badge variant="secondary">{settings.max_base_documents} docs max</Badge>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm">Pro Users</span>
-                        <Badge variant="secondary">{settings.max_pro_documents} docs max</Badge>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm">Enterprise Users</span>
-                        <Badge variant="secondary">{settings.max_enterprise_documents} docs max</Badge>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm">Global Prompt</span>
-                        <Badge variant="secondary">
-                          {settings.global_prompt.length} characters
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </TabsContent>
 
           <TabsContent value="users">
