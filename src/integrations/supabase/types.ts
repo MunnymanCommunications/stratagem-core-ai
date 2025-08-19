@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
@@ -20,11 +20,13 @@ export type Database = {
           api_key_encrypted: string | null
           chat_completions_url: string | null
           created_at: string
+          general_assistant_id: string | null
           global_prompt: string
           id: string
           max_base_documents: number
           max_enterprise_documents: number
           max_pro_documents: number
+          platform_assistant_id: string | null
           price_base_cents: number
           price_enterprise_cents: number
           price_pro_cents: number
@@ -38,11 +40,13 @@ export type Database = {
           api_key_encrypted?: string | null
           chat_completions_url?: string | null
           created_at?: string
+          general_assistant_id?: string | null
           global_prompt?: string
           id?: string
           max_base_documents?: number
           max_enterprise_documents?: number
           max_pro_documents?: number
+          platform_assistant_id?: string | null
           price_base_cents?: number
           price_enterprise_cents?: number
           price_pro_cents?: number
@@ -56,11 +60,13 @@ export type Database = {
           api_key_encrypted?: string | null
           chat_completions_url?: string | null
           created_at?: string
+          general_assistant_id?: string | null
           global_prompt?: string
           id?: string
           max_base_documents?: number
           max_enterprise_documents?: number
           max_pro_documents?: number
+          platform_assistant_id?: string | null
           price_base_cents?: number
           price_enterprise_cents?: number
           price_pro_cents?: number
@@ -408,23 +414,23 @@ export type Database = {
       get_company_info_for_ai: {
         Args: { user_uuid: string }
         Returns: {
-          company_name: string
           business_info: Json
+          company_name: string
         }[]
       }
       get_user_documents_for_ai: {
         Args: { user_uuid: string }
         Returns: {
-          filename: string
           content_summary: string
           file_path: string
+          filename: string
           mime_type: string
         }[]
       }
       has_role: {
         Args: {
-          _user_id: string
           _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
         }
         Returns: boolean
       }

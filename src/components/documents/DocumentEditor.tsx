@@ -85,7 +85,9 @@ const DocumentEditor = ({
           ${companyTemplate.website ? `<p style="margin: 5px 0; color: #6b7280;">Website: ${companyTemplate.website}</p>` : ''}
         </div>
         <div style="text-align: right;">
-          <h2 style="font-size: 28px; font-weight: bold; color: #3b82f6; margin: 0; text-transform: uppercase;">${documentType}</h2>
+          <h2 style="font-size: 28px; font-weight: bold; color: #3b82f6; margin: 0; text-transform: uppercase;">
+            ${documentType === 'proposal' ? 'PROPOSAL' : 'INVOICE'}
+          </h2>
           <p style="margin: 10px 0; color: #6b7280;">Date: ${new Date().toLocaleDateString()}</p>
           <p style="margin: 5px 0; color: #6b7280;">Doc #: ${documentType.toUpperCase()}-${Date.now().toString().slice(-6)}</p>
         </div>
