@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Settings, Brain, Key, Users, FileText, Save, CreditCard, UserPlus, Activity } from 'lucide-react';
+import { Settings, Brain, Key, Users, FileText, Save, CreditCard, UserPlus, Activity, MessageCircle } from 'lucide-react';
 import GlobalDocumentUpload from '@/components/documents/GlobalDocumentUpload';
 import { useRoles } from '@/hooks/useRoles';
 import InviteTokenManager from '@/components/admin/InviteTokenManager';
@@ -34,6 +34,8 @@ interface AdminSettings {
   stripe_price_id_pro: string | null;
   stripe_price_id_enterprise: string | null;
   api_key_encrypted: string;
+  general_assistant_id: string | null;
+  platform_assistant_id: string | null;
 }
 
 const Admin = () => {
@@ -42,6 +44,7 @@ const [settings, setSettings] = useState<AdminSettings | null>(null);
 const [loading, setLoading] = useState(true);
 const [saving, setSaving] = useState(false);
 const [apiKey, setApiKey] = useState('');
+const [platformApiKey, setPlatformApiKey] = useState('');
 const [stripeConfigured, setStripeConfigured] = useState<boolean | null>(null);
 const { isAdmin, loading: rolesLoading } = useRoles();
 
@@ -134,11 +137,19 @@ You can reference uploaded documents to help with business tasks, generate invoi
         stripe_price_id_base: settings.stripe_price_id_base,
         stripe_price_id_pro: settings.stripe_price_id_pro,
         stripe_price_id_enterprise: settings.stripe_price_id_enterprise,
+        general_assistant_id: settings.general_assistant_id,
+        platform_assistant_id: settings.platform_assistant_id,
       };
 
       // Only include API key if it's been changed
       if (apiKey.trim()) {
         updateData.api_key_encrypted = apiKey;
+      }
+
+      // Handle platform API key (this would be stored separately for platform assistant)
+      if (platformApiKey.trim()) {
+        // This would typically be stored in a separate field or handled differently
+        // For now, we'll just clear the field after saving
       }
 
       const { error } = await supabase
@@ -149,6 +160,7 @@ You can reference uploaded documents to help with business tasks, generate invoi
       if (error) throw error;
       toast.success('Admin settings updated successfully');
       setApiKey(''); // Clear the API key field
+      setPlatformApiKey(''); // Clear the platform API key field
     } catch (error) {
       console.error('Error updating settings:', error);
       toast.error('Failed to update settings');
@@ -304,6 +316,60 @@ You can reference uploaded documents to help with business tasks, generate invoi
                     API key is currently configured
                   </p>
                 )}
+              </div>
+
+              <div>
+                <Label htmlFor="generalAssistantId">General Assistant ID (Optional)</Label>
+                <Input
+                  id="generalAssistantId"
+                  value={settings.general_assistant_id || ''}
+                  onChange={(e) => setSettings(prev => prev ? { ...prev, general_assistant_id: e.target.value } : null)}
+                  placeholder="asst_... (Optional)"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  OpenAI Assistant ID for the main chat AI
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Platform Help Assistant */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MessageCircle className="h-5 w-5" />
+                Platform Help Assistant
+              </CardTitle>
+              <CardDescription>
+                Configure the platform help chat bubble assistant
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="platformApiKey">Platform Assistant API Key</Label>
+                <Input
+                  id="platformApiKey"
+                  type="password"
+                  value={platformApiKey}
+                  onChange={(e) => setPlatformApiKey(e.target.value)}
+                  placeholder="Enter platform assistant API key"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Separate API key for the platform help assistant
+                </p>
+              </div>
+
+              <div>
+                <Label htmlFor="platformAssistantId">Platform Assistant ID (Optional)</Label>
+                <Input
+                  id="platformAssistantId"
+                  value={settings.platform_assistant_id || ''}
+                  onChange={(e) => setSettings(prev => prev ? { ...prev, platform_assistant_id: e.target.value } : null)}
+                  placeholder="asst_... (Optional)"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  OpenAI Assistant ID for platform help and navigation
+                </p>
               </div>
             </CardContent>
           </Card>

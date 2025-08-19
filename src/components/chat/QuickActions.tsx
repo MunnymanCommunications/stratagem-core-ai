@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { FileText, Receipt, Send } from 'lucide-react';
+import { FileText, Send } from 'lucide-react';
 
 interface QuickActionsProps {
   onQuickAction: (action: string, prompt: string) => void;
@@ -14,12 +14,6 @@ const QuickActions = ({ onQuickAction, activeAction, onActionSelect }: QuickActi
       label: 'Generate Proposal',
       icon: FileText,
       prompt: 'Generate a professional proposal based on our conversation. Use my uploaded proposal templates for formatting and include relevant services from my pricing document. Make sure to include project timeline, deliverables, and pricing.'
-    },
-    {
-      id: 'generate-invoice',
-      label: 'Generate Invoice',
-      icon: Receipt,
-      prompt: 'Generate an invoice based on the services we discussed. Use my company information and pricing document to create an accurate invoice with the correct pricing and branding.'
     }
   ];
 

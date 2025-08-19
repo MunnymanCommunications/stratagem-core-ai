@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
 import Navigation from './Navigation';
+import PlatformHelpBubble from '@/components/chat/PlatformHelpBubble';
 
 interface LayoutProps {
   children: ReactNode;
@@ -14,6 +15,7 @@ const Layout = ({ children }: LayoutProps) => {
           {children}
         </main>
       </div>
+      <PlatformHelpBubble />
     </div>
   );
 };
