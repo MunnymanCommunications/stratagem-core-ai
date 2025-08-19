@@ -27,16 +27,24 @@ interface UserSubscription {
   created_at: string;
 }
 
+interface AdminSettings {
+  max_base_documents: number;
+  max_pro_documents: number;
+  max_enterprise_documents: number;
+}
+
 const Subscription = () => {
   const { user } = useAuth();
   const [subscription, setSubscription] = useState<UserSubscription | null>(null);
   const [documentCount, setDocumentCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [adminSettings, setAdminSettings] = useState<AdminSettings | null>(null);
 
   useEffect(() => {
     if (user) {
       fetchSubscription();
       fetchDocumentCount();
+      fetchAdminSettings();
     }
   }, [user]);
 
@@ -71,6 +79,21 @@ const Subscription = () => {
     }
   };
 
+  const fetchAdminSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('admin_settings')
+        .select('max_base_documents, max_pro_documents, max_enterprise_documents')
+        .limit(1)
+        .single();
+
+      if (error) throw error;
+      setAdminSettings(data);
+    } catch (error) {
+      console.error('Error fetching admin settings:', error);
+    }
+  };
+
   const upgradeSubscription = async (newTier: string) => {
     try {
       const { error } = await supabase
@@ -96,7 +119,7 @@ const Subscription = () => {
       icon: Star,
       color: 'border-gray-200',
       features: [
-        '1 Document Upload',
+        `${adminSettings?.max_base_documents || 1} Document Upload${(adminSettings?.max_base_documents || 1) > 1 ? 's' : ''}`,
         'Basic AI Assistant',
         'Invoice Generator',
         'Email Support',
@@ -117,7 +140,7 @@ const Subscription = () => {
       color: 'border-primary',
       popular: true,
       features: [
-        '5 Document Uploads',
+        `${adminSettings?.max_pro_documents || 5} Document Uploads`,
         'Advanced AI Assistant',
         'Full Business Tools Suite',
         'Priority Support',
@@ -135,7 +158,7 @@ const Subscription = () => {
       icon: Zap,
       color: 'border-purple-500',
       features: [
-        'Unlimited Documents',
+        `${adminSettings?.max_enterprise_documents || 20} Document Uploads`,
         'Custom AI Training',
         'Full Platform Access',
         'Dedicated Support',
@@ -313,9 +336,9 @@ const Subscription = () => {
                 <tbody>
                   <tr className="border-b">
                     <td className="p-4">Document Uploads</td>
-                    <td className="text-center p-4">1</td>
-                    <td className="text-center p-4">5</td>
-                    <td className="text-center p-4">Unlimited</td>
+                    <td className="text-center p-4">{adminSettings?.max_base_documents || 1}</td>
+                    <td className="text-center p-4">{adminSettings?.max_pro_documents || 5}</td>
+                    <td className="text-center p-4">{adminSettings?.max_enterprise_documents || 20}</td>
                   </tr>
                   <tr className="border-b">
                     <td className="p-4">AI Assistant</td>

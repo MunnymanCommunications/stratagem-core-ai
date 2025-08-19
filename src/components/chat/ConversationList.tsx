@@ -72,24 +72,22 @@ const ConversationList = ({
           }`}
         >
           <div className="flex items-center justify-between">
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 pr-2">
               <p className="font-medium truncate">{conversation.title}</p>
               <p className="text-xs opacity-70">
                 {new Date(conversation.created_at).toLocaleDateString()}
               </p>
             </div>
             
-            {(hoveredConversation === conversation.id || deletingConversation === conversation.id) && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => deleteConversation(conversation.id, e)}
-                disabled={deletingConversation === conversation.id}
-                className="ml-2 h-6 w-6 p-0 opacity-70 hover:opacity-100 hover:bg-destructive hover:text-destructive-foreground"
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => deleteConversation(conversation.id, e)}
+              disabled={deletingConversation === conversation.id}
+              className="h-6 w-6 p-0 opacity-70 hover:opacity-100 hover:bg-destructive hover:text-destructive-foreground flex-shrink-0"
+            >
+              <X className="h-3 w-3" />
+            </Button>
           </div>
         </div>
       ))}

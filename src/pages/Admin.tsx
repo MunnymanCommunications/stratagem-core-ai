@@ -36,6 +36,7 @@ interface AdminSettings {
   api_key_encrypted: string;
   general_assistant_id: string | null;
   platform_assistant_id: string | null;
+  platform_prompt: string | null;
 }
 
 const Admin = () => {
@@ -139,6 +140,7 @@ You can reference uploaded documents to help with business tasks, generate invoi
         stripe_price_id_enterprise: settings.stripe_price_id_enterprise,
         general_assistant_id: settings.general_assistant_id,
         platform_assistant_id: settings.platform_assistant_id,
+        platform_prompt: settings.platform_prompt,
       };
 
       // Only include API key if it's been changed
@@ -369,6 +371,20 @@ You can reference uploaded documents to help with business tasks, generate invoi
                 />
                 <p className="text-xs text-muted-foreground mt-1">
                   OpenAI Assistant ID for platform help and navigation
+                </p>
+              </div>
+
+              <div>
+                <Label htmlFor="platformPrompt">Platform Help Prompt</Label>
+                <Textarea
+                  id="platformPrompt"
+                  value={settings.platform_prompt || ''}
+                  onChange={(e) => setSettings(prev => prev ? { ...prev, platform_prompt: e.target.value } : null)}
+                  rows={4}
+                  placeholder="Enter the prompt for the platform help assistant..."
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Instructions for the platform help AI to assist users with navigation and features
                 </p>
               </div>
             </CardContent>

@@ -92,21 +92,21 @@ serve(async (req) => {
             const extractorResponse = await supabase.functions.invoke('pdf-extractor', {
               body: { 
                 filePath: doc.file_path, 
-                bucket: 'user-uploads' 
+                bucket: 'documents' 
               }
             });
             
             if (extractorResponse.data?.success && extractorResponse.data?.content) {
               // Limit content to avoid token limits
               const content = extractorResponse.data.content;
-              const truncatedContent = content.length > 800 ? content.substring(0, 800) + '...' : content;
-              documentsContext += `  Content: ${truncatedContent}\n`;
+              const truncatedContent = content.length > 1000 ? content.substring(0, 1000) + '...' : content;
+              documentsContext += `  Content Preview: ${truncatedContent}\n`;
             } else {
-              documentsContext += `  Content: [PDF available - ${Math.round((doc.file_size || 0) / 1024)}KB]\n`;
+              documentsContext += `  Content: [PDF available - extraction pending]\n`;
             }
           } catch (error) {
             console.error('Error extracting PDF content:', error);
-            documentsContext += `  Content: [PDF available - ${Math.round((doc.file_size || 0) / 1024)}KB]\n`;
+            documentsContext += `  Content: [PDF available - extraction failed]\n`;
           }
         }
       }
@@ -123,21 +123,21 @@ serve(async (req) => {
             const extractorResponse = await supabase.functions.invoke('pdf-extractor', {
               body: { 
                 filePath: doc.file_path, 
-                bucket: 'global-uploads' 
+                bucket: 'documents' 
               }
             });
             
             if (extractorResponse.data?.success && extractorResponse.data?.content) {
               // Limit content to avoid token limits
               const content = extractorResponse.data.content;
-              const truncatedContent = content.length > 800 ? content.substring(0, 800) + '...' : content;
-              documentsContext += `  Content: ${truncatedContent}\n`;
+              const truncatedContent = content.length > 1000 ? content.substring(0, 1000) + '...' : content;
+              documentsContext += `  Content Preview: ${truncatedContent}\n`;
             } else {
-              documentsContext += `  Content: [PDF available - ${Math.round((doc.file_size || 0) / 1024)}KB]\n`;
+              documentsContext += `  Content: [PDF available - extraction pending]\n`;
             }
           } catch (error) {
             console.error('Error extracting global PDF content:', error);
-            documentsContext += `  Content: [PDF available - ${Math.round((doc.file_size || 0) / 1024)}KB]\n`;
+            documentscContext += `  Content: [PDF available - extraction failed]\n`;
           }
         }
       }

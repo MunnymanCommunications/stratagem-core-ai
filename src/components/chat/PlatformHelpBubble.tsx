@@ -76,20 +76,75 @@ const PlatformHelpBubble = () => {
     setIsLoading(true);
 
     try {
-      // This would call your platform assistant API
-      // For now, we'll simulate a response
-      setTimeout(() => {
-        const assistantMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          content: generatePlatformResponse(inputValue),
-          role: 'assistant',
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, assistantMessage]);
-        setIsLoading(false);
-      }, 1000);
+      // Call the platform help API
+      const conversationHistory = messages.slice(-10).map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }));
+
+      let fullResponse = '';
+      
+      const response = await fetch(`https://gzgncmpytstovexfazdw.supabase.co/functions/v1/platform-help`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd6Z25jbXB5dHN0b3ZleGZhemR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQzMjY5MDEsImV4cCI6MjA2OTkwMjkwMX0.MXGmZChk2ytt2NQX5kDqiXxN2h4RiC2zD5EDN9wlJtc`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: inputValue,
+          conversationHistory
+        })
+      });
+
+      if (response.ok) {
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+
+        if (reader) {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6));
+                  if (data.content) {
+                    fullResponse += data.content;
+                  }
+                } catch (e) {
+                  // Skip invalid JSON
+                }
+              }
+            }
+          }
+        }
+      } else {
+        // Fallback to local response
+        fullResponse = generatePlatformResponse(inputValue);
+      }
+
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        content: fullResponse || generatePlatformResponse(inputValue),
+        role: 'assistant',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, assistantMessage]);
+      setIsLoading(false);
     } catch (error) {
       console.error('Error sending message:', error);
+      // Fallback to local response
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        content: generatePlatformResponse(inputValue),
+        role: 'assistant',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, assistantMessage]);
       setIsLoading(false);
     }
   };
