@@ -163,6 +163,45 @@ export type Database = {
           },
         ]
       }
+      generated_documents: {
+        Row: {
+          amount: number | null
+          client_name: string
+          content: string
+          created_at: string | null
+          document_type: string
+          file_path: string | null
+          id: string
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount?: number | null
+          client_name: string
+          content: string
+          created_at?: string | null
+          document_type: string
+          file_path?: string | null
+          id?: string
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number | null
+          client_name?: string
+          content?: string
+          created_at?: string | null
+          document_type?: string
+          file_path?: string | null
+          id?: string
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       global_documents: {
         Row: {
           created_at: string

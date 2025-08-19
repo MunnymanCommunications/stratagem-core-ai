@@ -6,6 +6,10 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { Download, Save, FileText } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface DocumentEditorProps {
   isOpen: boolean;
@@ -31,6 +35,7 @@ const DocumentEditor = ({
   aiGeneratedContent,
   clientName = 'Client'
 }: DocumentEditorProps) => {
+  const { user } = useAuth();
   const [editableContent, setEditableContent] = useState('');
   const [documentTitle, setDocumentTitle] = useState('');
   const [companyTemplate, setCompanyTemplate] = useState<CompanyTemplate | null>(null);
@@ -38,14 +43,8 @@ const DocumentEditor = ({
 
   useEffect(() => {
     if (isOpen) {
-      // Load saved template
-      const templateKey = documentType === 'proposal' ? 'proposalTemplate' : 'invoiceTemplate';
-      const savedTemplate = localStorage.getItem(templateKey);
-      
-      if (savedTemplate) {
-        const template = JSON.parse(savedTemplate);
-        setCompanyTemplate(template.companyInfo || null);
-      }
+      // Load company template from profile
+      fetchCompanyTemplate();
 
       // Ensure AI content is properly formatted and set
       if (aiGeneratedContent && aiGeneratedContent.trim()) {
@@ -70,6 +69,38 @@ const DocumentEditor = ({
       setDocumentTitle(`${documentType.charAt(0).toUpperCase() + documentType.slice(1)} for ${clientName}`);
     }
   }, [isOpen, aiGeneratedContent, documentType, clientName]);
+
+  const fetchCompanyTemplate = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('company, email, full_name')
+        .eq('id', user?.id)
+        .single();
+      
+      if (error) throw error;
+      
+      if (data) {
+        setCompanyTemplate({
+          name: data.company || 'Your Company',
+          address: 'Your Address',
+          phone: 'Your Phone',
+          email: data.email || 'your@email.com',
+          website: 'Your Website'
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching company template:', error);
+      // Fallback to default template
+      setCompanyTemplate({
+        name: 'Your Company',
+        address: 'Your Address',
+        phone: 'Your Phone',
+        email: user?.email || 'your@email.com',
+        website: 'Your Website'
+      });
+    }
+  };
 
   const generateHeader = () => {
     if (!companyTemplate) return '';
@@ -121,41 +152,85 @@ const DocumentEditor = ({
     `;
   };
 
-  const saveDocument = () => {
-    const documentData = {
-      id: Date.now().toString(),
-      type: documentType,
-      title: documentTitle,
-      content: getFullDocument(),
-      clientName,
-      amount: extractAmount(editableContent),
-      createdAt: new Date().toISOString()
-    };
+  const saveDocument = async () => {
+    try {
+      const documentData = {
+        user_id: user?.id,
+        document_type: documentType,
+        title: documentTitle,
+        content: getFullDocument(),
+        client_name: clientName,
+        amount: extractAmount(editableContent)
+      };
 
-    // Save to localStorage
-    const existingDocs = JSON.parse(localStorage.getItem('generatedDocuments') || '[]');
-    existingDocs.push(documentData);
-    localStorage.setItem('generatedDocuments', JSON.stringify(existingDocs));
+      const { error } = await supabase
+        .from('generated_documents')
+        .insert(documentData);
 
-    toast.success(`${documentType.charAt(0).toUpperCase() + documentType.slice(1)} saved successfully!`);
-    onClose();
+      if (error) throw error;
+
+      toast.success(`${documentType.charAt(0).toUpperCase() + documentType.slice(1)} saved successfully!`);
+      onClose();
+    } catch (error) {
+      console.error('Error saving document:', error);
+      toast.error('Failed to save document');
+    }
   };
 
-  const downloadPDF = () => {
-    const fullContent = getFullDocument();
-    
-    // Create a blob with the HTML content
-    const blob = new Blob([fullContent], { type: 'text/html' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${documentTitle.replace(/\s+/g, '_')}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-    
-    toast.success('Document downloaded successfully!');
+  const downloadPDF = async () => {
+    try {
+      // Create a temporary element for PDF generation
+      const element = document.createElement('div');
+      element.innerHTML = getFullDocument();
+      element.style.width = '800px';
+      element.style.padding = '40px';
+      element.style.fontFamily = 'Arial, sans-serif';
+      element.style.lineHeight = '1.6';
+      element.style.color = '#1f2937';
+      element.style.backgroundColor = 'white';
+      
+      // Add to DOM temporarily
+      element.style.position = 'absolute';
+      element.style.left = '-9999px';
+      document.body.appendChild(element);
+      
+      // Generate canvas from HTML
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true
+      });
+      
+      // Remove temporary element
+      document.body.removeChild(element);
+      
+      // Create PDF
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgData = canvas.toDataURL('image/png');
+      const imgWidth = 210; // A4 width in mm
+      const pageHeight = 295; // A4 height in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      
+      let position = 0;
+      
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+      
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+      
+      // Download PDF
+      pdf.save(`${documentTitle.replace(/\s+/g, '_')}.pdf`);
+      toast.success('PDF downloaded successfully!');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Failed to generate PDF');
+    }
   };
 
   const extractAmount = (content: string): number => {

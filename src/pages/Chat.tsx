@@ -245,6 +245,7 @@ const Chat = () => {
 
       // Check if this is a document generation action and open editor
       if (activeAction === 'generate-proposal' || activeAction === 'generate-invoice') {
+        const companyInfo = await fetchCompanyInfo();
         setGeneratedContent(aiResponse);
         setShowDocumentEditor(true);
       }
@@ -286,6 +287,22 @@ const Chat = () => {
       setActiveAction(null);
     } else {
       setActiveAction(actionId);
+    }
+  };
+
+  const fetchCompanyInfo = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('company, email, full_name')
+        .eq('id', user?.id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error fetching company info:', error);
+      return null;
     }
   };
 
