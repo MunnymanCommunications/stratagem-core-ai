@@ -78,6 +78,8 @@ const GlobalDocumentUpload = () => {
       if (file.type === 'application/pdf') {
         try {
           setUploadProgress(50);
+          console.log('Calling PDF extractor for file:', filePath);
+          
           const { data: extractorResponse, error: extractorError } = await supabase.functions
             .invoke('pdf-extractor', {
               body: { 
@@ -86,14 +88,23 @@ const GlobalDocumentUpload = () => {
               }
             });
 
+          console.log('PDF extractor response:', extractorResponse);
+          console.log('PDF extractor error:', extractorError);
+
           if (extractorError) {
             console.error('PDF extraction error:', extractorError);
+            toast.error('PDF extraction failed: ' + extractorError.message);
           } else if (extractorResponse?.success) {
             extractedText = extractorResponse.content;
-            console.log('PDF text extracted successfully');
+            console.log('PDF text extracted successfully, length:', extractedText?.length);
+            toast.success('PDF text extracted successfully');
+          } else {
+            console.error('PDF extraction failed:', extractorResponse?.error);
+            toast.error('PDF extraction failed: ' + (extractorResponse?.error || 'Unknown error'));
           }
         } catch (error) {
           console.error('Error calling PDF extractor:', error);
+          toast.error('Failed to call PDF extractor: ' + error.message);
         }
         setUploadProgress(75);
       }
