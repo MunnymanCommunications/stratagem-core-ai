@@ -16,7 +16,8 @@ interface GlobalDocument {
   mime_type: string;
   created_at: string;
   file_path: string;
-  user_id: string;
+  extracted_text?: string | null;
+  updated_at: string;
 }
 
 const GlobalDocumentUpload = () => {
@@ -34,9 +35,8 @@ const GlobalDocumentUpload = () => {
   const fetchGlobalDocuments = async () => {
     try {
       const { data, error } = await supabase
-        .from('user_documents')
+        .from('global_documents')
         .select('*')
-        .eq('filename', 'GLOBAL_ADMIN_DOCUMENT')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -73,15 +73,40 @@ const GlobalDocumentUpload = () => {
 
       if (uploadError) throw uploadError;
 
-      // Save document metadata to database (using user_documents temporarily)
+      // Extract text from PDF if it's a PDF file
+      let extractedText = null;
+      if (file.type === 'application/pdf') {
+        try {
+          setUploadProgress(50);
+          const { data: extractorResponse, error: extractorError } = await supabase.functions
+            .invoke('pdf-extractor', {
+              body: { 
+                filePath: filePath, 
+                bucket: 'documents' 
+              }
+            });
+
+          if (extractorError) {
+            console.error('PDF extraction error:', extractorError);
+          } else if (extractorResponse?.success) {
+            extractedText = extractorResponse.content;
+            console.log('PDF text extracted successfully');
+          }
+        } catch (error) {
+          console.error('Error calling PDF extractor:', error);
+        }
+        setUploadProgress(75);
+      }
+
+      // Save document metadata to global_documents table instead of user_documents
       const { error: dbError } = await supabase
-        .from('user_documents')
+        .from('global_documents')
         .insert({
-          user_id: user?.id,
-          filename: 'GLOBAL_ADMIN_DOCUMENT', // Special marker for global docs
+          filename: fileName,
           file_path: filePath,
           file_size: file.size,
-          mime_type: file.type
+          mime_type: file.type,
+          extracted_text: extractedText
         });
 
       if (dbError) throw dbError;
@@ -117,7 +142,7 @@ const GlobalDocumentUpload = () => {
 
       // Delete from database
       const { error } = await supabase
-        .from('user_documents')
+        .from('global_documents')
         .delete()
         .eq('id', documentId);
 

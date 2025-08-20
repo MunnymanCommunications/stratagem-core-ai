@@ -37,20 +37,20 @@ serve(async (req) => {
 
     console.log('Processing AI chat request for user:', userId);
 
-    // Get user documents
+    // Get user documents with extracted text
     const { data: userDocs, error: userDocsError } = await supabase
       .from('user_documents')
-      .select('filename, file_path, mime_type')
+      .select('filename, file_path, mime_type, extracted_text')
       .eq('user_id', userId);
 
     if (userDocsError) {
       console.error('Error fetching user documents:', userDocsError);
     }
 
-    // Get global documents
+    // Get global documents with extracted text
     const { data: globalDocs, error: globalDocsError } = await supabase
       .from('global_documents')
-      .select('filename, file_path, mime_type');
+      .select('filename, file_path, mime_type, extracted_text');
 
     if (globalDocsError) {
       console.error('Error fetching global documents:', globalDocsError);
@@ -86,28 +86,13 @@ serve(async (req) => {
       for (const doc of userDocs) {
         documentsContext += `- ${doc.filename} (${doc.mime_type})\n`;
         
-        // For PDFs, try to extract some content using the pdf-extractor function
-        if (doc.mime_type === 'application/pdf') {
-          try {
-            const extractorResponse = await supabase.functions.invoke('pdf-extractor', {
-              body: { 
-                filePath: doc.file_path, 
-                bucket: 'documents' 
-              }
-            });
-            
-            if (extractorResponse.data?.success && extractorResponse.data?.content) {
-              // Limit content to avoid token limits
-              const content = extractorResponse.data.content;
-              const truncatedContent = content.length > 1000 ? content.substring(0, 1000) + '...' : content;
-              documentsContext += `  Content Preview: ${truncatedContent}\n`;
-            } else {
-              documentsContext += `  Content: [PDF available - extraction pending]\n`;
-            }
-          } catch (error) {
-            console.error('Error extracting PDF content:', error);
-            documentsContext += `  Content: [PDF available - extraction failed]\n`;
-          }
+        // Use stored extracted text if available
+        if (doc.extracted_text) {
+          const truncatedContent = doc.extracted_text.length > 1500 ? 
+            doc.extracted_text.substring(0, 1500) + '...' : doc.extracted_text;
+          documentsContext += `  Content: ${truncatedContent}\n`;
+        } else if (doc.mime_type === 'application/pdf') {
+          documentsContext += `  Content: [PDF available - text extraction in progress]\n`;
         }
       }
     }
@@ -117,28 +102,13 @@ serve(async (req) => {
       for (const doc of globalDocs) {
         documentsContext += `- ${doc.filename} (${doc.mime_type})\n`;
         
-        // For PDFs, try to extract some content using the pdf-extractor function
-        if (doc.mime_type === 'application/pdf') {
-          try {
-            const extractorResponse = await supabase.functions.invoke('pdf-extractor', {
-              body: { 
-                filePath: doc.file_path, 
-                bucket: 'documents' 
-              }
-            });
-            
-            if (extractorResponse.data?.success && extractorResponse.data?.content) {
-              // Limit content to avoid token limits
-              const content = extractorResponse.data.content;
-              const truncatedContent = content.length > 1000 ? content.substring(0, 1000) + '...' : content;
-              documentsContext += `  Content Preview: ${truncatedContent}\n`;
-            } else {
-              documentsContext += `  Content: [PDF available - extraction pending]\n`;
-            }
-          } catch (error) {
-            console.error('Error extracting global PDF content:', error);
-            documentscContext += `  Content: [PDF available - extraction failed]\n`;
-          }
+        // Use stored extracted text if available
+        if (doc.extracted_text) {
+          const truncatedContent = doc.extracted_text.length > 1500 ? 
+            doc.extracted_text.substring(0, 1500) + '...' : doc.extracted_text;
+          documentsContext += `  Content: ${truncatedContent}\n`;
+        } else if (doc.mime_type === 'application/pdf') {
+          documentsContext += `  Content: [PDF available - text extraction in progress]\n`;
         }
       }
     }

@@ -40,29 +40,76 @@ serve(async (req) => {
     // Convert blob to array buffer
     const arrayBuffer = await fileData.arrayBuffer();
     
-    // For Deno edge functions, we'll use a simpler text extraction approach
-    // In a production environment, you might want to use a more robust PDF parsing library
-    
-    // Try to extract basic text from PDF (this is a simplified approach)
+    // Enhanced PDF text extraction approach
     const uint8Array = new Uint8Array(arrayBuffer);
-    const text = new TextDecoder().decode(uint8Array);
+    const text = new TextDecoder('latin1').decode(uint8Array);
     
-    // Look for text content patterns in PDF
-    const textMatches = text.match(/BT\s*\/\w+\s+\d+\s+Tf\s+[\d\s\.]+\s+Td\s*\((.*?)\)\s*Tj/g);
     let extractedText = '';
     
-    if (textMatches) {
-      textMatches.forEach(match => {
-        const textContent = match.match(/\((.*?)\)/);
-        if (textContent && textContent[1]) {
-          extractedText += textContent[1] + ' ';
+    // Method 1: Extract text using stream operators (more comprehensive)
+    const streamMatches = text.match(/BT[\s\S]*?ET/g);
+    if (streamMatches) {
+      streamMatches.forEach(stream => {
+        // Look for text showing operators
+        const textShowMatches = stream.match(/\((.*?)\)\s*Tj/g) || 
+                              stream.match(/\[(.*?)\]\s*TJ/g) ||
+                              stream.match(/\((.*?)\)\s*'/g);
+        
+        if (textShowMatches) {
+          textShowMatches.forEach(match => {
+            const content = match.match(/[\(\[](.*)[\)\]]/)?.[1];
+            if (content) {
+              // Clean up text content
+              let cleanContent = content
+                .replace(/\\n/g, '\n')
+                .replace(/\\r/g, '\r')
+                .replace(/\\t/g, '\t')
+                .replace(/\\\(/g, '(')
+                .replace(/\\\)/g, ')')
+                .replace(/\\\\/g, '\\');
+              
+              extractedText += cleanContent + ' ';
+            }
+          });
         }
       });
     }
     
-    // If no text found with simple extraction, return a placeholder
+    // Method 2: Look for plain text patterns if Method 1 didn't work
     if (!extractedText.trim()) {
-      extractedText = 'PDF content available but text extraction requires more advanced processing. File size: ' + Math.round(arrayBuffer.byteLength / 1024) + 'KB';
+      const plainTextMatches = text.match(/\(([^)]+)\)/g);
+      if (plainTextMatches) {
+        plainTextMatches.forEach(match => {
+          const content = match.slice(1, -1); // Remove parentheses
+          if (content.length > 2 && !content.match(/^[\d\s\.]+$/)) {
+            extractedText += content + ' ';
+          }
+        });
+      }
+    }
+    
+    // Method 3: Extract text between specific markers
+    if (!extractedText.trim()) {
+      const markerMatches = text.match(/>\s*([A-Za-z][^<>]*?)\s*</g);
+      if (markerMatches) {
+        markerMatches.forEach(match => {
+          const content = match.replace(/[<>]/g, '').trim();
+          if (content.length > 2) {
+            extractedText += content + ' ';
+          }
+        });
+      }
+    }
+    
+    // Clean up extracted text
+    extractedText = extractedText
+      .replace(/\s+/g, ' ')
+      .replace(/[^\x20-\x7E\n\r\t]/g, '') // Remove non-printable characters
+      .trim();
+    
+    // If no text found with any method, return a descriptive placeholder
+    if (!extractedText || extractedText.length < 10) {
+      extractedText = `PDF document uploaded (${Math.round(arrayBuffer.byteLength / 1024)}KB). Content extraction may require manual processing or the PDF may contain primarily images/graphics.`;
     }
 
     return new Response(JSON.stringify({ 
