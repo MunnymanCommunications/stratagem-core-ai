@@ -205,6 +205,7 @@ export type Database = {
       global_documents: {
         Row: {
           created_at: string
+          extracted_text: string | null
           file_path: string
           file_size: number
           filename: string
@@ -214,6 +215,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          extracted_text?: string | null
           file_path: string
           file_size: number
           filename: string
@@ -223,6 +225,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          extracted_text?: string | null
           file_path?: string
           file_size?: number
           filename?: string
@@ -370,6 +373,7 @@ export type Database = {
       user_documents: {
         Row: {
           created_at: string
+          extracted_text: string | null
           file_path: string
           file_size: number
           filename: string
@@ -380,6 +384,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          extracted_text?: string | null
           file_path: string
           file_size: number
           filename: string
@@ -390,6 +395,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          extracted_text?: string | null
           file_path?: string
           file_size?: number
           filename?: string
