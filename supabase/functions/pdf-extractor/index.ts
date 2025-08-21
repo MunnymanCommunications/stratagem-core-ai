@@ -1,7 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.53.0';
-import * as pdfParse from 'https://esm.sh/pdf-parse@1.1.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -38,22 +37,67 @@ serve(async (req) => {
       throw new Error(`Failed to download file: ${downloadError.message}`);
     }
 
-    // Convert blob to buffer for pdf-parse
+    // Convert blob to buffer and extract text
     const arrayBuffer = await fileData.arrayBuffer();
     const buffer = new Uint8Array(arrayBuffer);
     
     console.log('PDF file size:', arrayBuffer.byteLength);
-    console.log('Starting text extraction with pdf-parse...');
+    console.log('Starting text extraction...');
     
-    // Use pdf-parse library for robust text extraction
-    const pdfData = await pdfParse(buffer);
-    let extractedText = pdfData.text;
+    // Convert buffer to string for text extraction
+    const pdfString = new TextDecoder('latin1').decode(buffer);
     
-    console.log('Extracted text length:', extractedText.length);
+    // Extract text from PDF streams
+    let extractedText = '';
+    
+    // Look for text objects in PDF
+    const textRegex = /BT\s+(.*?)\s+ET/gs;
+    const matches = pdfString.match(textRegex);
+    
+    if (matches) {
+      for (const match of matches) {
+        // Extract text from parentheses and brackets
+        const textInParens = match.match(/\((.*?)\)/g);
+        const textInBrackets = match.match(/\[(.*?)\]/g);
+        
+        if (textInParens) {
+          for (const text of textInParens) {
+            const cleanText = text.replace(/[()]/g, '');
+            if (cleanText.length > 0 && !/^[0-9\s\.\-\+]+$/.test(cleanText)) {
+              extractedText += cleanText + ' ';
+            }
+          }
+        }
+        
+        if (textInBrackets) {
+          for (const text of textInBrackets) {
+            const cleanText = text.replace(/[\[\]]/g, '');
+            if (cleanText.length > 0 && !/^[0-9\s\.\-\+]+$/.test(cleanText)) {
+              extractedText += cleanText + ' ';
+            }
+          }
+        }
+      }
+    }
+    
+    // Also look for simple text patterns
+    const simpleTextRegex = /Tj\s*\n?\s*\((.*?)\)/g;
+    let match;
+    while ((match = simpleTextRegex.exec(pdfString)) !== null) {
+      const text = match[1];
+      if (text && text.length > 0 && !/^[0-9\s\.\-\+]+$/.test(text)) {
+        extractedText += text + ' ';
+      }
+    }
+    
+    console.log('Raw extracted text length:', extractedText.length);
     console.log('First 200 chars:', extractedText.substring(0, 200));
     
     // Clean up extracted text
     extractedText = extractedText
+      .replace(/\\n/g, ' ')
+      .replace(/\\r/g, ' ')
+      .replace(/\\t/g, ' ')
       .replace(/\s+/g, ' ')
       .replace(/[\x00-\x1F\x7F-\x9F]/g, '') // Remove control characters
       .trim();
