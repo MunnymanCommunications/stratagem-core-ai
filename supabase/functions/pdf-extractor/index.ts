@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.53.0';
+import * as pdfParse from 'https://esm.sh/pdf-parse@1.1.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -37,107 +38,19 @@ serve(async (req) => {
       throw new Error(`Failed to download file: ${downloadError.message}`);
     }
 
-    // Convert blob to array buffer
+    // Convert blob to buffer for pdf-parse
     const arrayBuffer = await fileData.arrayBuffer();
-    
-    // More robust PDF text extraction
-    const uint8Array = new Uint8Array(arrayBuffer);
-    let extractedText = '';
-    
-    // Convert to string for processing
-    const pdfString = new TextDecoder('latin1').decode(uint8Array);
+    const buffer = new Uint8Array(arrayBuffer);
     
     console.log('PDF file size:', arrayBuffer.byteLength);
-    console.log('Starting text extraction...');
+    console.log('Starting text extraction with pdf-parse...');
     
-    // Method 1: Extract text from content streams
-    const contentStreamRegex = /stream\s*\n([\s\S]*?)\s*endstream/gi;
-    const contentStreams = [];
-    let match;
+    // Use pdf-parse library for robust text extraction
+    const pdfData = await pdfParse(buffer);
+    let extractedText = pdfData.text;
     
-    while ((match = contentStreamRegex.exec(pdfString)) !== null) {
-      contentStreams.push(match[1]);
-    }
-    
-    console.log('Found', contentStreams.length, 'content streams');
-    
-    // Method 2: Look for text objects and operators
-    for (const stream of contentStreams) {
-      // Find BT...ET blocks (text objects)
-      const textObjectRegex = /BT\s*([\s\S]*?)\s*ET/gi;
-      let textMatch;
-      
-      while ((textMatch = textObjectRegex.exec(stream)) !== null) {
-        const textContent = textMatch[1];
-        
-        // Extract text from Tj operators: (text)Tj
-        const tjMatches = textContent.match(/\(((?:[^\\)]|\\.)*)(\s*)Tj/gi);
-        if (tjMatches) {
-          tjMatches.forEach(tj => {
-            const textMatch = tj.match(/\(((?:[^\\)]|\\.)*)/);
-            if (textMatch && textMatch[1]) {
-              let text = textMatch[1]
-                .replace(/\\n/g, '\n')
-                .replace(/\\r/g, '\r')
-                .replace(/\\t/g, '\t')
-                .replace(/\\\(/g, '(')
-                .replace(/\\\)/g, ')')
-                .replace(/\\\\/g, '\\')
-                .replace(/\\(\d{3})/g, (_, octal) => String.fromCharCode(parseInt(octal, 8)));
-              
-              if (text.trim() && text.length > 1 && !/^[\s\d\.,\-\+]+$/.test(text)) {
-                extractedText += text + ' ';
-              }
-            }
-          });
-        }
-        
-        // Extract text from TJ operators: [(text1)(text2)]TJ
-        const tjArrayMatches = textContent.match(/\[((?:[^\]]|\](?!\s*TJ))*)\]\s*TJ/gi);
-        if (tjArrayMatches) {
-          tjArrayMatches.forEach(tj => {
-            const arrayContent = tj.match(/\[((?:[^\]]|\](?!\s*TJ))*)\]/);
-            if (arrayContent && arrayContent[1]) {
-              const textMatches = arrayContent[1].match(/\(((?:[^\\)]|\\.)*)\)/g);
-              if (textMatches) {
-                textMatches.forEach(textItem => {
-                  const text = textItem.slice(1, -1) // Remove parentheses
-                    .replace(/\\n/g, '\n')
-                    .replace(/\\r/g, '\r')
-                    .replace(/\\t/g, '\t')
-                    .replace(/\\\(/g, '(')
-                    .replace(/\\\)/g, ')')
-                    .replace(/\\\\/g, '\\');
-                  
-                  if (text.trim() && text.length > 1 && !/^[\s\d\.,\-\+]+$/.test(text)) {
-                    extractedText += text + ' ';
-                  }
-                });
-              }
-            }
-          });
-        }
-      }
-    }
-    
-    // Fallback: Look for any text in parentheses that might be readable
-    if (!extractedText.trim()) {
-      console.log('No text found in streams, trying fallback method...');
-      const fallbackMatches = pdfString.match(/\(([^)]{3,})\)/g);
-      if (fallbackMatches) {
-        const seenTexts = new Set();
-        fallbackMatches.forEach(match => {
-          const text = match.slice(1, -1).trim();
-          if (text.length > 2 && 
-              !/^[\d\s\.,\-\+\/\\]+$/.test(text) && 
-              !/^[A-F0-9\s]+$/.test(text) && 
-              !seenTexts.has(text.toLowerCase())) {
-            seenTexts.add(text.toLowerCase());
-            extractedText += text + ' ';
-          }
-        });
-      }
-    }
+    console.log('Extracted text length:', extractedText.length);
+    console.log('First 200 chars:', extractedText.substring(0, 200));
     
     // Clean up extracted text
     extractedText = extractedText
@@ -145,10 +58,7 @@ serve(async (req) => {
       .replace(/[\x00-\x1F\x7F-\x9F]/g, '') // Remove control characters
       .trim();
     
-    console.log('Extracted text length:', extractedText.length);
-    console.log('First 200 chars:', extractedText.substring(0, 200));
-    
-    // If no text found with any method, return a descriptive placeholder
+    // If no meaningful text extracted, provide informative message
     if (!extractedText || extractedText.length < 10) {
       extractedText = `PDF document uploaded (${Math.round(arrayBuffer.byteLength / 1024)}KB). Content extraction may require manual processing or the PDF may contain primarily images/graphics.`;
     }
