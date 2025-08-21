@@ -86,13 +86,18 @@ serve(async (req) => {
       for (const doc of userDocs) {
         documentsContext += `- ${doc.filename} (${doc.mime_type})\n`;
         
-        // Use stored extracted text if available
-        if (doc.extracted_text) {
+        console.log(`Document: ${doc.filename}, extracted_text length: ${doc.extracted_text?.length || 0}`);
+        console.log(`First 100 chars: ${doc.extracted_text?.substring(0, 100) || 'No extracted text'}`);
+        
+        // Use stored extracted text if available and it's not garbage data
+        if (doc.extracted_text && doc.extracted_text.length > 50 && !doc.extracted_text.includes('endstream') && !doc.extracted_text.includes('xref')) {
           const truncatedContent = doc.extracted_text.length > 1500 ? 
             doc.extracted_text.substring(0, 1500) + '...' : doc.extracted_text;
           documentsContext += `  Content: ${truncatedContent}\n`;
         } else if (doc.mime_type === 'application/pdf') {
-          documentsContext += `  Content: [PDF available - text extraction in progress]\n`;
+          documentsContext += `  Content: [PDF text extraction failed - please re-upload document]\n`;
+        } else if (doc.extracted_text) {
+          documentsContext += `  Content: ${doc.extracted_text}\n`;
         }
       }
     }
@@ -102,13 +107,18 @@ serve(async (req) => {
       for (const doc of globalDocs) {
         documentsContext += `- ${doc.filename} (${doc.mime_type})\n`;
         
-        // Use stored extracted text if available
-        if (doc.extracted_text) {
+        console.log(`Global Document: ${doc.filename}, extracted_text length: ${doc.extracted_text?.length || 0}`);
+        console.log(`First 100 chars: ${doc.extracted_text?.substring(0, 100) || 'No extracted text'}`);
+        
+        // Use stored extracted text if available and it's not garbage data
+        if (doc.extracted_text && doc.extracted_text.length > 50 && !doc.extracted_text.includes('endstream') && !doc.extracted_text.includes('xref')) {
           const truncatedContent = doc.extracted_text.length > 1500 ? 
             doc.extracted_text.substring(0, 1500) + '...' : doc.extracted_text;
           documentsContext += `  Content: ${truncatedContent}\n`;
         } else if (doc.mime_type === 'application/pdf') {
-          documentsContext += `  Content: [PDF available - text extraction in progress]\n`;
+          documentsContext += `  Content: [PDF text extraction failed - please re-upload document]\n`;
+        } else if (doc.extracted_text) {
+          documentsContext += `  Content: ${doc.extracted_text}\n`;
         }
       }
     }
