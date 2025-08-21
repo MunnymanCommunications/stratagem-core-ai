@@ -195,7 +195,7 @@ const GlobalDocumentUpload = () => {
             type="file"
             onChange={handleFileSelect}
             className="hidden"
-            accept=".pdf,.doc,.docx,.txt,.rtf"
+            accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,application/rtf"
           />
           
           {uploading ? (
