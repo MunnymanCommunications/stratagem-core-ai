@@ -40,62 +40,100 @@ serve(async (req) => {
     // Convert blob to array buffer
     const arrayBuffer = await fileData.arrayBuffer();
     
-    // Enhanced PDF text extraction approach
+    // More robust PDF text extraction
     const uint8Array = new Uint8Array(arrayBuffer);
-    const text = new TextDecoder('latin1').decode(uint8Array);
-    
     let extractedText = '';
     
-    // Method 1: Extract text using stream operators (more comprehensive)
-    const streamMatches = text.match(/BT[\s\S]*?ET/g);
-    if (streamMatches) {
-      streamMatches.forEach(stream => {
-        // Look for text showing operators
-        const textShowMatches = stream.match(/\((.*?)\)\s*Tj/g) || 
-                              stream.match(/\[(.*?)\]\s*TJ/g) ||
-                              stream.match(/\((.*?)\)\s*'/g);
+    // Convert to string for processing
+    const pdfString = new TextDecoder('latin1').decode(uint8Array);
+    
+    console.log('PDF file size:', arrayBuffer.byteLength);
+    console.log('Starting text extraction...');
+    
+    // Method 1: Extract text from content streams
+    const contentStreamRegex = /stream\s*\n([\s\S]*?)\s*endstream/gi;
+    const contentStreams = [];
+    let match;
+    
+    while ((match = contentStreamRegex.exec(pdfString)) !== null) {
+      contentStreams.push(match[1]);
+    }
+    
+    console.log('Found', contentStreams.length, 'content streams');
+    
+    // Method 2: Look for text objects and operators
+    for (const stream of contentStreams) {
+      // Find BT...ET blocks (text objects)
+      const textObjectRegex = /BT\s*([\s\S]*?)\s*ET/gi;
+      let textMatch;
+      
+      while ((textMatch = textObjectRegex.exec(stream)) !== null) {
+        const textContent = textMatch[1];
         
-        if (textShowMatches) {
-          textShowMatches.forEach(match => {
-            const content = match.match(/[\(\[](.*)[\)\]]/)?.[1];
-            if (content) {
-              // Clean up text content
-              let cleanContent = content
+        // Extract text from Tj operators: (text)Tj
+        const tjMatches = textContent.match(/\(((?:[^\\)]|\\.)*)(\s*)Tj/gi);
+        if (tjMatches) {
+          tjMatches.forEach(tj => {
+            const textMatch = tj.match(/\(((?:[^\\)]|\\.)*)/);
+            if (textMatch && textMatch[1]) {
+              let text = textMatch[1]
                 .replace(/\\n/g, '\n')
                 .replace(/\\r/g, '\r')
                 .replace(/\\t/g, '\t')
                 .replace(/\\\(/g, '(')
                 .replace(/\\\)/g, ')')
-                .replace(/\\\\/g, '\\');
+                .replace(/\\\\/g, '\\')
+                .replace(/\\(\d{3})/g, (_, octal) => String.fromCharCode(parseInt(octal, 8)));
               
-              extractedText += cleanContent + ' ';
+              if (text.trim() && text.length > 1 && !/^[\s\d\.,\-\+]+$/.test(text)) {
+                extractedText += text + ' ';
+              }
             }
           });
         }
-      });
-    }
-    
-    // Method 2: Look for plain text patterns if Method 1 didn't work
-    if (!extractedText.trim()) {
-      const plainTextMatches = text.match(/\(([^)]+)\)/g);
-      if (plainTextMatches) {
-        plainTextMatches.forEach(match => {
-          const content = match.slice(1, -1); // Remove parentheses
-          if (content.length > 2 && !content.match(/^[\d\s\.]+$/)) {
-            extractedText += content + ' ';
-          }
-        });
+        
+        // Extract text from TJ operators: [(text1)(text2)]TJ
+        const tjArrayMatches = textContent.match(/\[((?:[^\]]|\](?!\s*TJ))*)\]\s*TJ/gi);
+        if (tjArrayMatches) {
+          tjArrayMatches.forEach(tj => {
+            const arrayContent = tj.match(/\[((?:[^\]]|\](?!\s*TJ))*)\]/);
+            if (arrayContent && arrayContent[1]) {
+              const textMatches = arrayContent[1].match(/\(((?:[^\\)]|\\.)*)\)/g);
+              if (textMatches) {
+                textMatches.forEach(textItem => {
+                  const text = textItem.slice(1, -1) // Remove parentheses
+                    .replace(/\\n/g, '\n')
+                    .replace(/\\r/g, '\r')
+                    .replace(/\\t/g, '\t')
+                    .replace(/\\\(/g, '(')
+                    .replace(/\\\)/g, ')')
+                    .replace(/\\\\/g, '\\');
+                  
+                  if (text.trim() && text.length > 1 && !/^[\s\d\.,\-\+]+$/.test(text)) {
+                    extractedText += text + ' ';
+                  }
+                });
+              }
+            }
+          });
+        }
       }
     }
     
-    // Method 3: Extract text between specific markers
+    // Fallback: Look for any text in parentheses that might be readable
     if (!extractedText.trim()) {
-      const markerMatches = text.match(/>\s*([A-Za-z][^<>]*?)\s*</g);
-      if (markerMatches) {
-        markerMatches.forEach(match => {
-          const content = match.replace(/[<>]/g, '').trim();
-          if (content.length > 2) {
-            extractedText += content + ' ';
+      console.log('No text found in streams, trying fallback method...');
+      const fallbackMatches = pdfString.match(/\(([^)]{3,})\)/g);
+      if (fallbackMatches) {
+        const seenTexts = new Set();
+        fallbackMatches.forEach(match => {
+          const text = match.slice(1, -1).trim();
+          if (text.length > 2 && 
+              !/^[\d\s\.,\-\+\/\\]+$/.test(text) && 
+              !/^[A-F0-9\s]+$/.test(text) && 
+              !seenTexts.has(text.toLowerCase())) {
+            seenTexts.add(text.toLowerCase());
+            extractedText += text + ' ';
           }
         });
       }
@@ -104,8 +142,11 @@ serve(async (req) => {
     // Clean up extracted text
     extractedText = extractedText
       .replace(/\s+/g, ' ')
-      .replace(/[^\x20-\x7E\n\r\t]/g, '') // Remove non-printable characters
+      .replace(/[\x00-\x1F\x7F-\x9F]/g, '') // Remove control characters
       .trim();
+    
+    console.log('Extracted text length:', extractedText.length);
+    console.log('First 200 chars:', extractedText.substring(0, 200));
     
     // If no text found with any method, return a descriptive placeholder
     if (!extractedText || extractedText.length < 10) {
