@@ -15,11 +15,11 @@ interface RequestBody {
 // Helper function to convert PDF to images using pdf.js
 async function pdfToImages(pdfBuffer: Uint8Array): Promise<string[]> {
   try {
-    // Import pdf.js
-    const pdfjsLib = await import('https://esm.sh/pdfjs-dist@4.4.168');
+    // Import pdf.js with specific version that works in Deno
+    const pdfjsLib = await import('https://esm.sh/pdfjs-dist@3.11.174/legacy/build/pdf.js');
     
-    // Set worker source
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://esm.sh/pdfjs-dist@4.4.168/build/pdf.worker.min.mjs';
+    // Disable worker for Deno environment
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     
     const loadingTask = pdfjsLib.getDocument({ data: pdfBuffer });
     const pdf = await loadingTask.promise;
