@@ -18,8 +18,10 @@ async function pdfToImages(pdfBuffer: Uint8Array): Promise<string[]> {
     // Import pdf.js with specific version that works in Deno
     const pdfjsLib = await import('https://esm.sh/pdfjs-dist@3.11.174/legacy/build/pdf.js');
     
-    // Disable worker for Deno environment
-    pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+    // Safely disable worker for Deno environment
+    if (pdfjsLib.GlobalWorkerOptions) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+    }
     
     const loadingTask = pdfjsLib.getDocument({ data: pdfBuffer });
     const pdf = await loadingTask.promise;
