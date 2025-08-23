@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.53.0';
+import * as pdfjsLib from 'https://esm.sh/pdfjs-dist@4.0.379/legacy/build/pdf.mjs';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,23 +13,52 @@ interface RequestBody {
   bucket: string;
 }
 
-// Simple text extraction that returns a basic summary for now
-// In the future, this could be enhanced with proper PDF parsing libraries
-async function extractTextFromPDF(fileName: string, fileSize: number): Promise<string> {
-  console.log('Processing PDF file for text extraction...');
-  
-  // For now, return a descriptive placeholder that includes file info
-  // This ensures the system continues to work while we implement proper PDF parsing
-  const summary = `PDF Document: ${fileName}
-  
-File Size: ${Math.round(fileSize / 1024)}KB
+// Extract text from PDF using pdf.js
+async function extractTextFromPDF(arrayBuffer: ArrayBuffer, fileName: string): Promise<string> {
+  try {
+    console.log('Extracting text from PDF using pdf.js...');
+    
+    // Load the PDF document
+    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+    const pdf = await loadingTask.promise;
+    
+    let fullText = '';
+    
+    // Extract text from each page
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      console.log(`Processing page ${pageNum} of ${pdf.numPages}`);
+      const page = await pdf.getPage(pageNum);
+      const textContent = await page.getTextContent();
+      
+      const pageText = textContent.items
+        .map((item: any) => item.str)
+        .join(' ');
+      
+      fullText += `Page ${pageNum}:\n${pageText}\n\n`;
+    }
+    
+    if (!fullText.trim()) {
+      return `PDF Document: ${fileName}
 
-This PDF document has been uploaded and is available for reference. 
-The document contains formatted text, tables, and other content that can be referenced in conversations.
+File processed but no extractable text content found. This may be an image-based PDF or contain non-text elements.
 
-Note: Full text extraction will be implemented in a future update. For now, you can ask questions about this document and the AI will help interpret and work with the content based on the document's context and your specific needs.`;
+The document has been uploaded successfully and can be referenced in conversations.`;
+    }
+    
+    console.log(`Successfully extracted ${fullText.length} characters from ${pdf.numPages} pages`);
+    return fullText.trim();
+    
+  } catch (error) {
+    console.error('Error extracting PDF text:', error);
+    
+    // Fallback to basic summary if extraction fails
+    return `PDF Document: ${fileName}
 
-  return summary;
+Text extraction encountered an error, but the document has been uploaded successfully.
+Error: ${error.message}
+
+The document is available for reference in conversations.`;
+  }
 }
 
 serve(async (req) => {
@@ -62,16 +92,16 @@ serve(async (req) => {
     
     console.log('PDF file size:', arrayBuffer.byteLength);
     
-    // Extract text from PDF using simplified approach
-    const extractedText = await extractTextFromPDF(fileName, arrayBuffer.byteLength);
+    // Extract text from PDF 
+    const extractedText = await extractTextFromPDF(arrayBuffer, fileName);
     
-    console.log('Generated summary for PDF');
+    console.log('Successfully processed PDF');
     
     return new Response(JSON.stringify({ 
       success: true,
       content: extractedText,
       fileSize: arrayBuffer.byteLength,
-      pagesProcessed: 1
+      pagesProcessed: 'multiple'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
