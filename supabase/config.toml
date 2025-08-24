@@ -5,3 +5,6 @@ verify_jwt = true
 
 [functions.claim-invite]
 verify_jwt = true
+
+[functions.pdf-vision-extractor]
+verify_jwt = true

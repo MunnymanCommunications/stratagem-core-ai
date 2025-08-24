@@ -86,10 +86,10 @@ const GlobalDocumentUpload = () => {
       if (file.type === 'application/pdf') {
         try {
           setUploadProgress(50);
-          console.log('Calling PDF extractor edge function for file:', filePath);
+          console.log('Calling OpenAI Vision PDF extractor for file:', filePath);
           
           const { data: extractorResponse, error: extractorError } = await supabase.functions
-            .invoke('pdf-extractor', {
+            .invoke('pdf-vision-extractor', {
               body: { 
                 filePath: filePath, 
                 bucket: 'documents' 
@@ -102,14 +102,9 @@ const GlobalDocumentUpload = () => {
             console.error('PDF extraction error:', extractorError);
             toast.warning('PDF uploaded but text extraction failed: ' + extractorError.message);
           } else if (extractorResponse?.success && extractorResponse?.content) {
-            // Clean extracted text to remove null bytes and problematic characters
-            extractedText = extractorResponse.content
-              .replace(/\u0000/g, '') // Remove null bytes
-              .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // Remove other control characters
-              .trim();
-            
-            console.log('PDF text extracted successfully, length:', extractedText.length);
-            toast.success('PDF text extracted successfully');
+            extractedText = extractorResponse.content;
+            console.log('PDF text extracted successfully using OpenAI Vision, length:', extractedText.length);
+            toast.success('PDF text extracted successfully using AI Vision');
           } else {
             console.error('PDF extraction failed:', extractorResponse?.error);
             toast.warning('PDF uploaded but text extraction returned no content');
