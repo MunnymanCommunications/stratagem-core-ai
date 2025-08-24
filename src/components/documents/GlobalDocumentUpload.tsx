@@ -100,14 +100,18 @@ const GlobalDocumentUpload = () => {
           
           if (extractorError) {
             console.error('PDF extraction error:', extractorError);
-            toast.warning('PDF uploaded but text extraction failed: ' + extractorError.message);
+            toast.error(`Document processing failed: ${extractorError.message}`);
           } else if (extractorResponse?.success && extractorResponse?.content) {
             extractedText = extractorResponse.content;
-            console.log('PDF text extracted successfully using OpenAI Vision, length:', extractedText.length);
-            toast.success('PDF text extracted successfully using AI Vision');
+            const metrics = extractorResponse.processingMetrics;
+            const processingTimeSeconds = (metrics?.processingTimeMs / 1000)?.toFixed(1) || 'N/A';
+            console.log('PDF text extracted successfully using GPT-5 Vision, length:', extractedText.length);
+            console.log('Processing metrics:', metrics);
+            toast.success(`Document processed successfully in ${processingTimeSeconds}s using GPT-5 Vision AI`);
           } else {
-            console.error('PDF extraction failed:', extractorResponse?.error);
-            toast.warning('PDF uploaded but text extraction returned no content');
+            const errorMsg = extractorResponse?.error || 'Unknown processing error occurred';
+            console.error('PDF extraction failed:', errorMsg);
+            toast.error(`Document processing failed: ${errorMsg}`);
           }
         } catch (error) {
           console.error('Error calling PDF extractor:', error);

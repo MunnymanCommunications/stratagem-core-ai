@@ -21,8 +21,10 @@ interface FileUploadProps {
 interface UploadingFile {
   file: File;
   progress: number;
-  status: 'uploading' | 'complete' | 'error';
+  status: 'uploading' | 'processing' | 'complete' | 'error';
   id: string;
+  error?: string;
+  message?: string;
 }
 
 const FileUpload = ({
@@ -96,11 +98,37 @@ const FileUpload = ({
             
             if (extractorError) {
               console.error('PDF extraction error:', extractorError);
+              setUploadingFiles(prev =>
+                prev.map(f =>
+                  f.id === uploadingFile.id
+                    ? { ...f, status: 'error', error: `Processing failed: ${extractorError.message}` }
+                    : f
+                )
+              );
             } else if (extractorResponse?.success && extractorResponse?.content) {
               extractedText = extractorResponse.content;
-              console.log('PDF text extracted successfully using OpenAI Vision, length:', extractedText.length);
+              const metrics = extractorResponse.processingMetrics;
+              const processingTimeSeconds = (metrics?.processingTimeMs / 1000)?.toFixed(1) || 'N/A';
+              console.log('PDF text extracted successfully using GPT-5 Vision, length:', extractedText.length);
+              console.log('Processing metrics:', metrics);
+              
+              setUploadingFiles(prev =>
+                prev.map(f =>
+                  f.id === uploadingFile.id
+                    ? { ...f, progress: 75, status: 'processing', message: `Processed in ${processingTimeSeconds}s with GPT-5` }
+                    : f
+                )
+              );
             } else {
-              console.error('PDF extraction failed:', extractorResponse?.error);
+              const errorMsg = extractorResponse?.error || 'Unknown processing error occurred';
+              console.error('PDF extraction failed:', errorMsg);
+              setUploadingFiles(prev =>
+                prev.map(f =>
+                  f.id === uploadingFile.id
+                    ? { ...f, status: 'error', error: `Processing failed: ${errorMsg}` }
+                    : f
+                )
+              );
             }
           } catch (error) {
             console.error('Error calling PDF extractor:', error);
@@ -205,6 +233,14 @@ const FileUpload = ({
                         </span>
                       </>
                     )}
+                    {uploadingFile.status === 'processing' && (
+                      <>
+                        <Progress value={uploadingFile.progress} className="flex-1" />
+                        <span className="text-xs text-blue-600">
+                          {uploadingFile.message || 'Processing with AI...'}
+                        </span>
+                      </>
+                    )}
                     {uploadingFile.status === 'complete' && (
                       <div className="flex items-center gap-1 text-green-600">
                         <CheckCircle className="h-4 w-4" />
@@ -212,7 +248,9 @@ const FileUpload = ({
                       </div>
                     )}
                     {uploadingFile.status === 'error' && (
-                      <span className="text-xs text-red-600">Upload failed</span>
+                      <span className="text-xs text-red-600">
+                        {uploadingFile.error || 'Upload failed'}
+                      </span>
                     )}
                   </div>
                 </div>
