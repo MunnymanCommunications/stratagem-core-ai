@@ -74,26 +74,36 @@ const GlobalDocumentUpload = () => {
 
       if (uploadError) throw uploadError;
 
-      // Extract text from PDF if it's a PDF file
+      // Extract text from PDF if it's a PDF file using edge function
       let extractedText = null;
       if (file.type === 'application/pdf') {
         try {
           setUploadProgress(50);
-          console.log('Extracting PDF text for file:', filePath);
+          console.log('Calling PDF extractor edge function for file:', filePath);
           
-          extractedText = await extractPDFContent(filePath, 'documents');
+          const { data: extractorResponse, error: extractorError } = await supabase.functions
+            .invoke('pdf-extractor', {
+              body: { 
+                filePath: filePath, 
+                bucket: 'documents' 
+              }
+            });
+
+          console.log('PDF extractor response:', extractorResponse);
           
-          if (extractedText && extractedText.length > 50 && !extractedText.startsWith('No readable text') && !extractedText.includes('PDF extraction failed')) {
+          if (extractorError) {
+            console.error('PDF extraction error:', extractorError);
+            toast.warning('PDF uploaded but text extraction failed: ' + extractorError.message);
+          } else if (extractorResponse?.success && extractorResponse?.content) {
+            extractedText = extractorResponse.content;
             console.log('PDF text extracted successfully, length:', extractedText.length);
             toast.success('PDF text extracted successfully');
           } else {
-            console.warn('PDF extraction returned minimal or no content:', extractedText?.substring(0, 100));
-            extractedText = null; // Don't store poor quality extractions
-            toast.warning('PDF uploaded but text extraction was limited');
+            console.error('PDF extraction failed:', extractorResponse?.error);
+            toast.warning('PDF uploaded but text extraction returned no content');
           }
         } catch (error) {
-          console.error('Error extracting PDF text:', error);
-          extractedText = null;
+          console.error('Error calling PDF extractor:', error);
           toast.warning('PDF uploaded but text extraction failed: ' + error.message);
         }
         setUploadProgress(75);
