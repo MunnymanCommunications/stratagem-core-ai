@@ -2,8 +2,11 @@
 import { supabase } from '@/integrations/supabase/client';
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Set the worker source - use a more reliable CDN
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
+// Set the worker source - use local worker to avoid CORS issues in preview environment
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.js',
+  import.meta.url
+).toString();
 
 export interface DocumentContent {
   filename: string;
@@ -36,16 +39,34 @@ export const extractPDFContent = async (filePath: string, bucket: string = 'user
     const arrayBuffer = await data.arrayBuffer();
     console.log('PDF size:', arrayBuffer.byteLength, 'bytes');
     
-    // Load the PDF document with explicit options
-    const loadingTask = pdfjsLib.getDocument({
-      data: arrayBuffer,
-      useWorkerFetch: false,
-      isEvalSupported: false,
-      useSystemFonts: true
-    });
-    
-    const pdf = await loadingTask.promise;
-    console.log('PDF loaded successfully. Pages:', pdf.numPages);
+    // Try to load PDF with worker first, then without worker as fallback
+    let pdf;
+    try {
+      // Load the PDF document with worker
+      const loadingTask = pdfjsLib.getDocument({
+        data: arrayBuffer,
+        useWorkerFetch: false,
+        isEvalSupported: false,
+        useSystemFonts: true
+      });
+      
+      pdf = await loadingTask.promise;
+      console.log('PDF loaded with worker successfully. Pages:', pdf.numPages);
+    } catch (workerError) {
+      console.warn('Worker failed, trying without worker:', workerError);
+      
+      // Fallback: disable worker and try again
+      pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+      const loadingTask = pdfjsLib.getDocument({
+        data: arrayBuffer,
+        useWorkerFetch: false,
+        isEvalSupported: false,
+        useSystemFonts: true
+      });
+      
+      pdf = await loadingTask.promise;
+      console.log('PDF loaded without worker successfully. Pages:', pdf.numPages);
+    }
     
     let fullText = '';
     
