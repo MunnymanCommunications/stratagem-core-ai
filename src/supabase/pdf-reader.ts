@@ -2,8 +2,8 @@
 import { supabase } from '@/integrations/supabase/client';
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Set the worker source
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Set the worker source - use a more reliable CDN
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
 
 export interface DocumentContent {
   filename: string;
@@ -18,7 +18,7 @@ export interface DocumentContent {
 // PDF content extraction using pdf.js
 export const extractPDFContent = async (filePath: string, bucket: string = 'user-uploads'): Promise<string> => {
   try {
-    console.log('Extracting content from PDF:', filePath);
+    console.log('Extracting PDF content using pdf.js for:', filePath);
     
     // Download the file from Supabase Storage
     const { data, error } = await supabase.storage
@@ -26,35 +26,70 @@ export const extractPDFContent = async (filePath: string, bucket: string = 'user
       .download(filePath);
 
     if (error) {
-      console.error('Error downloading PDF:', error);
-      return 'Error: Could not download PDF file';
+      console.error('Error downloading PDF from storage:', error);
+      throw new Error(`Could not download PDF: ${error.message}`);
     }
 
+    console.log('PDF downloaded successfully, processing with pdf.js...');
+    
     // Convert blob to array buffer
     const arrayBuffer = await data.arrayBuffer();
+    console.log('PDF size:', arrayBuffer.byteLength, 'bytes');
     
-    // Load the PDF document
-    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+    // Load the PDF document with explicit options
+    const loadingTask = pdfjsLib.getDocument({
+      data: arrayBuffer,
+      useWorkerFetch: false,
+      isEvalSupported: false,
+      useSystemFonts: true
+    });
+    
     const pdf = await loadingTask.promise;
+    console.log('PDF loaded successfully. Pages:', pdf.numPages);
     
     let fullText = '';
     
     // Extract text from each page
     for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-      const page = await pdf.getPage(pageNum);
-      const textContent = await page.getTextContent();
-      
-      const pageText = textContent.items
-        .map((item: any) => item.str)
-        .join(' ');
-      
-      fullText += pageText + '\n\n';
+      try {
+        console.log(`Processing page ${pageNum}/${pdf.numPages}`);
+        const page = await pdf.getPage(pageNum);
+        const textContent = await page.getTextContent();
+        
+        // Extract text with proper spacing
+        const pageText = textContent.items
+          .map((item: any) => {
+            if (item.str && item.str.trim()) {
+              return item.str;
+            }
+            return '';
+          })
+          .filter(text => text.length > 0)
+          .join(' ');
+        
+        if (pageText.trim()) {
+          fullText += pageText + '\n\n';
+        }
+        
+        console.log(`Page ${pageNum} extracted ${pageText.length} characters`);
+      } catch (pageError) {
+        console.error(`Error processing page ${pageNum}:`, pageError);
+        // Continue with other pages
+      }
     }
     
-    return fullText.trim() || 'No text content found in PDF';
+    const finalText = fullText.trim();
+    console.log(`PDF extraction complete. Total characters: ${finalText.length}`);
+    
+    if (finalText.length > 0) {
+      return finalText;
+    } else {
+      return 'No readable text content found in this PDF. The document may contain only images or be password protected.';
+    }
+    
   } catch (error) {
     console.error('Error extracting PDF content:', error);
-    return 'Error: Could not extract text from PDF file - ' + error.message;
+    throw new Error(`PDF extraction failed: ${error.message}`);
   }
 };
 

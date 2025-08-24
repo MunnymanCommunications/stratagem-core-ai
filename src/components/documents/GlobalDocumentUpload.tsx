@@ -82,17 +82,19 @@ const GlobalDocumentUpload = () => {
           console.log('Extracting PDF text for file:', filePath);
           
           extractedText = await extractPDFContent(filePath, 'documents');
-          console.log('PDF text extracted successfully, length:', extractedText?.length);
           
-          if (extractedText && !extractedText.startsWith('Error:')) {
+          if (extractedText && extractedText.length > 50 && !extractedText.startsWith('No readable text') && !extractedText.includes('PDF extraction failed')) {
+            console.log('PDF text extracted successfully, length:', extractedText.length);
             toast.success('PDF text extracted successfully');
           } else {
-            console.error('PDF extraction failed:', extractedText);
-            toast.error('PDF text extraction failed');
+            console.warn('PDF extraction returned minimal or no content:', extractedText?.substring(0, 100));
+            extractedText = null; // Don't store poor quality extractions
+            toast.warning('PDF uploaded but text extraction was limited');
           }
         } catch (error) {
           console.error('Error extracting PDF text:', error);
-          toast.error('Failed to extract PDF text: ' + error.message);
+          extractedText = null;
+          toast.warning('PDF uploaded but text extraction failed: ' + error.message);
         }
         setUploadProgress(75);
       }

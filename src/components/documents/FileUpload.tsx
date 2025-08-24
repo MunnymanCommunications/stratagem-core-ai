@@ -76,9 +76,16 @@ const FileUpload = ({
             );
             
             extractedText = await extractPDFContent(uploadData.path, 'documents');
-            console.log('PDF text extracted successfully, length:', extractedText?.length);
+            
+            if (extractedText && extractedText.length > 50 && !extractedText.startsWith('No readable text') && !extractedText.includes('PDF extraction failed')) {
+              console.log('PDF text extracted successfully, length:', extractedText.length);
+            } else {
+              console.warn('PDF extraction returned minimal or no content:', extractedText?.substring(0, 100));
+              extractedText = null; // Don't store poor quality extractions
+            }
           } catch (error) {
             console.error('Error extracting PDF text:', error);
+            extractedText = null;
           }
         }
 
