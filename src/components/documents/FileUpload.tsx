@@ -54,7 +54,14 @@ const FileUpload = ({
       try {
         const { file } = uploadingFile;
         const fileExt = file.name.split('.').pop();
-        const fileName = `${user.id}/${Date.now()}-${file.name}`;
+        
+        // Sanitize filename - remove invalid characters and ensure no double extensions
+        const sanitizedFileName = file.name
+          .replace(/[™®©&%#@!*+\[\]{}|\\:";'<>?,]/g, '_') // Replace invalid chars
+          .replace(/\.pdf$/i, '') // Remove .pdf extension if already there
+          .trim();
+          
+        const fileName = `${user.id}/${Date.now()}-${sanitizedFileName}.${fileExt}`;
 
         // Upload to Supabase Storage
         const { data: uploadData, error: uploadError } = await supabase.storage
@@ -90,7 +97,12 @@ const FileUpload = ({
             if (extractorError) {
               console.error('PDF extraction error:', extractorError);
             } else if (extractorResponse?.success && extractorResponse?.content) {
-              extractedText = extractorResponse.content;
+              // Clean extracted text to remove null bytes and problematic characters
+              extractedText = extractorResponse.content
+                .replace(/\u0000/g, '') // Remove null bytes
+                .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // Remove other control characters
+                .trim();
+                
               console.log('PDF text extracted successfully, length:', extractedText.length);
             } else {
               console.error('PDF extraction failed:', extractorResponse?.error);

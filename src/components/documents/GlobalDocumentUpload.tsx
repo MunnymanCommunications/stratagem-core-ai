@@ -65,7 +65,14 @@ const GlobalDocumentUpload = () => {
     try {
       const fileName = customName.trim() || file.name;
       const fileExt = file.name.split('.').pop();
-      const filePath = `global/${Date.now()}-${fileName}${fileExt ? `.${fileExt}` : ''}`;
+      
+      // Sanitize filename - remove invalid characters and ensure no double extensions
+      const sanitizedFileName = fileName
+        .replace(/[™®©&%#@!*+\[\]{}|\\:";'<>?,]/g, '_') // Replace invalid chars
+        .replace(/\.pdf$/i, '') // Remove .pdf extension if already there
+        .trim();
+      
+      const filePath = `global/${Date.now()}-${sanitizedFileName}.${fileExt}`;
 
       // Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage
@@ -95,7 +102,12 @@ const GlobalDocumentUpload = () => {
             console.error('PDF extraction error:', extractorError);
             toast.warning('PDF uploaded but text extraction failed: ' + extractorError.message);
           } else if (extractorResponse?.success && extractorResponse?.content) {
-            extractedText = extractorResponse.content;
+            // Clean extracted text to remove null bytes and problematic characters
+            extractedText = extractorResponse.content
+              .replace(/\u0000/g, '') // Remove null bytes
+              .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // Remove other control characters
+              .trim();
+            
             console.log('PDF text extracted successfully, length:', extractedText.length);
             toast.success('PDF text extracted successfully');
           } else {
