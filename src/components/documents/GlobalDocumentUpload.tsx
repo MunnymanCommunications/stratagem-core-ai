@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import { Upload, FileText, X } from 'lucide-react';
+import { extractPDFContent } from '@/supabase/pdf-reader';
 
 interface GlobalDocument {
   id: string;
@@ -78,33 +79,20 @@ const GlobalDocumentUpload = () => {
       if (file.type === 'application/pdf') {
         try {
           setUploadProgress(50);
-          console.log('Calling PDF extractor for file:', filePath);
+          console.log('Extracting PDF text for file:', filePath);
           
-          const { data: extractorResponse, error: extractorError } = await supabase.functions
-            .invoke('pdf-extractor', {
-              body: { 
-                filePath: filePath, 
-                bucket: 'documents' 
-              }
-            });
-
-          console.log('PDF extractor response:', extractorResponse);
-          console.log('PDF extractor error:', extractorError);
-
-          if (extractorError) {
-            console.error('PDF extraction error:', extractorError);
-            toast.error('PDF extraction failed: ' + extractorError.message);
-          } else if (extractorResponse?.success) {
-            extractedText = extractorResponse.content;
-            console.log('PDF text extracted successfully, length:', extractedText?.length);
+          extractedText = await extractPDFContent(filePath, 'documents');
+          console.log('PDF text extracted successfully, length:', extractedText?.length);
+          
+          if (extractedText && !extractedText.startsWith('Error:')) {
             toast.success('PDF text extracted successfully');
           } else {
-            console.error('PDF extraction failed:', extractorResponse?.error);
-            toast.error('PDF extraction failed: ' + (extractorResponse?.error || 'Unknown error'));
+            console.error('PDF extraction failed:', extractedText);
+            toast.error('PDF text extraction failed');
           }
         } catch (error) {
-          console.error('Error calling PDF extractor:', error);
-          toast.error('Failed to call PDF extractor: ' + error.message);
+          console.error('Error extracting PDF text:', error);
+          toast.error('Failed to extract PDF text: ' + error.message);
         }
         setUploadProgress(75);
       }

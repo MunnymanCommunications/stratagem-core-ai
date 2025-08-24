@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import { Upload, File, X, CheckCircle } from 'lucide-react';
+import { extractPDFContent } from '@/supabase/pdf-reader';
 
 interface FileUploadProps {
   onUploadComplete?: () => void;
@@ -62,6 +63,25 @@ const FileUpload = ({
 
         if (uploadError) throw uploadError;
 
+        // Extract text from PDF if it's a PDF file
+        let extractedText = null;
+        if (file.type === 'application/pdf') {
+          try {
+            setUploadingFiles(prev =>
+              prev.map(f =>
+                f.id === uploadingFile.id
+                  ? { ...f, progress: 50 }
+                  : f
+              )
+            );
+            
+            extractedText = await extractPDFContent(uploadData.path, 'documents');
+            console.log('PDF text extracted successfully, length:', extractedText?.length);
+          } catch (error) {
+            console.error('Error extracting PDF text:', error);
+          }
+        }
+
         // Save file metadata to database
         const { error: dbError } = await supabase
           .from('user_documents')
@@ -70,7 +90,8 @@ const FileUpload = ({
             filename: file.name,
             file_path: uploadData.path,
             file_size: file.size,
-            mime_type: file.type
+            mime_type: file.type,
+            extracted_text: extractedText
           });
 
         if (dbError) throw dbError;
