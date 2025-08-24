@@ -34,31 +34,22 @@ function logWithMetrics(level: 'info' | 'warn' | 'error', message: string, metri
   console.log(`[${level.toUpperCase()}] ${timestamp}: ${message}`, metrics ? JSON.stringify(metrics) : '');
 }
 
-// Convert PDF buffer to base64 images for vision processing
+// Convert PDF buffer to base64 for vision processing
 async function convertPDFToImages(arrayBuffer: ArrayBuffer): Promise<string[]> {
   try {
-    logWithMetrics('info', 'Starting PDF to image conversion');
+    logWithMetrics('info', 'Starting PDF to base64 conversion for vision processing');
     
-    // For now, we'll extract text first and then use vision as enhancement
-    // In a full implementation, you'd use a PDF-to-image library like pdf2pic
-    // This is a simplified approach for immediate deployment
-    
+    // Convert PDF buffer to base64 for OpenAI Vision API
     const uint8Array = new Uint8Array(arrayBuffer);
-    const decoder = new TextDecoder('utf-8', { fatal: false });
-    const pdfString = decoder.decode(uint8Array);
+    const base64String = btoa(String.fromCharCode.apply(null, Array.from(uint8Array)));
     
-    // Extract readable text patterns from PDF binary
-    const textMatches = pdfString.match(/\([^)]+\)/g) || [];
-    const cleanText = textMatches
-      .map(match => match.slice(1, -1))
-      .filter(text => text.length > 3 && /[a-zA-Z]/.test(text))
-      .join(' ');
+    logWithMetrics('info', 'PDF converted to base64', { 
+      originalSize: arrayBuffer.byteLength,
+      base64Length: base64String.length 
+    });
     
-    logWithMetrics('info', 'PDF text extraction completed', { extractedLength: cleanText.length });
-    
-    // Return the extracted text as if it were processed from images
-    // This maintains the interface while providing immediate functionality
-    return [cleanText];
+    // Return base64 string for vision processing
+    return [base64String];
     
   } catch (error) {
     logWithMetrics('error', 'PDF conversion failed', { errorType: 'conversion_error' });
@@ -171,48 +162,58 @@ serve(async (req) => {
       bytes: arrayBuffer.byteLength 
     });
 
-    // Convert PDF and extract text
-    const imageTexts = await convertPDFToImages(arrayBuffer);
+    // Convert PDF to base64 for vision processing
+    const base64Images = await convertPDFToImages(arrayBuffer);
     
-    if (!imageTexts.length) {
-      throw new Error('No readable content found in PDF');
+    if (!base64Images.length) {
+      throw new Error('No content found in PDF for processing');
     }
 
-    // Process with GPT-5 Mini using chunks
-    logWithMetrics('info', 'Processing with GPT-5 Mini Vision API');
+    // Process with GPT-5 Mini Vision API
+    logWithMetrics('info', 'Processing PDF with GPT-5 Mini Vision API');
     
     const allProcessedText: string[] = [];
     let totalTokensUsed = 0;
 
-    for (let i = 0; i < imageTexts.length; i++) {
-      const textChunk = imageTexts[i];
-      const chunks = chunkText(textChunk, 6000); // Conservative chunk size for GPT-5
+    for (let i = 0; i < base64Images.length; i++) {
+      const base64Data = base64Images[i];
       
-      for (const chunk of chunks) {
-        try {
-          const processedChunk = await retryWithBackoff(async () => {
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${openAIApiKey}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                model: 'gpt-5-mini-2025-08-07', // GPT-5 Mini for speed and cost efficiency
-                messages: [
-                  {
-                    role: 'system',
-                    content: 'You are an expert document processor. Clean, structure, and enhance the extracted PDF text while preserving all meaningful information. Remove garbled characters, fix formatting issues, and ensure readability. Maintain the original meaning and context.'
-                  },
-                  {
-                    role: 'user',
-                    content: `Clean and structure this PDF text excerpt, preserving all meaningful content:\n\n${chunk}`
-                  }
-                ],
-                max_completion_tokens: 3000, // GPT-5 uses max_completion_tokens
-                // Note: temperature not supported in GPT-5
-              }),
-            });
+      try {
+        const processedResult = await retryWithBackoff(async () => {
+          const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${openAIApiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'gpt-5-mini-2025-08-07', // GPT-5 Mini for vision processing
+              messages: [
+                {
+                  role: 'system',
+                  content: 'You are an expert document analyzer. Extract and structure ALL text content from this PDF image. Preserve tables, lists, and formatting. Return clean, readable text that captures all information visible in the document. Focus on extracting actual document content, not metadata.'
+                },
+                {
+                  role: 'user',
+                  content: [
+                    {
+                      type: 'text',
+                      text: 'Extract all text content from this PDF document image. Maintain structure and formatting:'
+                    },
+                    {
+                      type: 'image_url',
+                      image_url: {
+                        url: `data:application/pdf;base64,${base64Data}`,
+                        detail: 'high'
+                      }
+                    }
+                  ]
+                }
+              ],
+              max_completion_tokens: 4000, // GPT-5 uses max_completion_tokens
+              // Note: temperature not supported in GPT-5
+            }),
+          });
 
             if (!response.ok) {
               const errorText = await response.text();
@@ -223,30 +224,30 @@ serve(async (req) => {
               throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
             }
 
-            return response.json();
-          }, 3, 2000);
+          return response.json();
+        }, 3, 2000);
 
-          const processedText = processedChunk.choices[0]?.message?.content || '';
-          if (processedText.trim()) {
-            allProcessedText.push(processedText.trim());
-          }
-
-          // Track token usage for monitoring
-          totalTokensUsed += processedChunk.usage?.total_tokens || 0;
-          
-          logWithMetrics('info', `Processed chunk ${allProcessedText.length}`, {
-            chunkLength: chunk.length,
-            tokensUsed: processedChunk.usage?.total_tokens || 0
-          });
-
-        } catch (chunkError) {
-          logWithMetrics('warn', `Chunk processing failed, using fallback`, {
-            errorType: 'chunk_processing_error',
-            chunkIndex: i
-          });
-          // Use original chunk as fallback
-          allProcessedText.push(chunk);
+        const extractedText = processedResult.choices[0]?.message?.content || '';
+        if (extractedText.trim()) {
+          allProcessedText.push(extractedText.trim());
         }
+
+        // Track token usage for monitoring
+        totalTokensUsed += processedResult.usage?.total_tokens || 0;
+        
+        logWithMetrics('info', `Processed PDF page ${i + 1}`, {
+          pageIndex: i + 1,
+          extractedLength: extractedText.length,
+          tokensUsed: processedResult.usage?.total_tokens || 0
+        });
+
+      } catch (pageError) {
+        logWithMetrics('warn', `Page ${i + 1} processing failed, skipping`, {
+          errorType: 'page_processing_error',
+          pageIndex: i + 1,
+          error: pageError.message
+        });
+        // Skip failed pages rather than using fallback
       }
     }
 
