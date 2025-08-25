@@ -47,6 +47,7 @@ const [saving, setSaving] = useState(false);
 const [apiKey, setApiKey] = useState('');
 const [platformApiKey, setPlatformApiKey] = useState('');
 const [stripeConfigured, setStripeConfigured] = useState<boolean | null>(null);
+const [customModel, setCustomModel] = useState('');
 const { isAdmin, loading: rolesLoading } = useRoles();
 
 useEffect(() => {
@@ -285,8 +286,15 @@ You can reference uploaded documents to help with business tasks, generate invoi
               <div>
                 <Label htmlFor="aiModel">AI Model</Label>
                 <Select 
-                  value={settings.ai_model} 
-                  onValueChange={(value) => setSettings(prev => prev ? { ...prev, ai_model: value } : null)}
+                  value={settings.ai_model === 'custom' || !['gpt-4o-mini', 'gpt-4o', 'gpt-3.5-turbo', 'gpt-5-mini-2025-08-07', 'gpt-5-2025-08-07', 'claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022', 'gemini-pro'].includes(settings.ai_model) ? 'custom' : settings.ai_model}
+                  onValueChange={(value) => {
+                    if (value === 'custom') {
+                      setCustomModel(settings.ai_model);
+                    } else {
+                      setSettings(prev => prev ? { ...prev, ai_model: value } : null);
+                      setCustomModel('');
+                    }
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -295,10 +303,31 @@ You can reference uploaded documents to help with business tasks, generate invoi
                     <SelectItem value="gpt-4o-mini">GPT-4O Mini</SelectItem>
                     <SelectItem value="gpt-4o">GPT-4O</SelectItem>
                     <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
-                    <SelectItem value="claude-3-sonnet">Claude 3 Sonnet</SelectItem>
-                    <SelectItem value="claude-3-haiku">Claude 3 Haiku</SelectItem>
+                    <SelectItem value="gpt-5-mini-2025-08-07">GPT-5 Mini</SelectItem>
+                    <SelectItem value="gpt-5-2025-08-07">GPT-5</SelectItem>
+                    <SelectItem value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</SelectItem>
+                    <SelectItem value="claude-3-5-haiku-20241022">Claude 3.5 Haiku</SelectItem>
+                    <SelectItem value="gemini-pro">Gemini Pro</SelectItem>
+                    <SelectItem value="custom">Custom Model</SelectItem>
                   </SelectContent>
                 </Select>
+                {(settings.ai_model === 'custom' || !['gpt-4o-mini', 'gpt-4o', 'gpt-3.5-turbo', 'gpt-5-mini-2025-08-07', 'gpt-5-2025-08-07', 'claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022', 'gemini-pro'].includes(settings.ai_model)) && (
+                  <div className="mt-2">
+                    <Label htmlFor="customModel">Custom Model Name</Label>
+                    <Input
+                      id="customModel"
+                      value={customModel || settings.ai_model}
+                      onChange={(e) => {
+                        setCustomModel(e.target.value);
+                        setSettings(prev => prev ? { ...prev, ai_model: e.target.value } : null);
+                      }}
+                      placeholder="e.g. claude-opus-4-20250514, gemini-1.5-pro"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Enter the exact model name from your AI provider
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div>

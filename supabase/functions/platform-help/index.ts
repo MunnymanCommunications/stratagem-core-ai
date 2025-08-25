@@ -39,7 +39,7 @@ serve(async (req) => {
     // Get admin settings for platform assistant configuration
     const { data: adminSettings, error: adminError } = await supabase
       .from('admin_settings')
-      .select('platform_prompt, platform_assistant_id')
+      .select('platform_prompt, platform_assistant_id, ai_model')
       .limit(1)
       .single();
 
@@ -87,23 +87,41 @@ Be concise, helpful, and guide users to the appropriate platform sections based 
     // Use assistant if configured, otherwise use regular chat completion
     let response;
     if (adminSettings?.platform_assistant_id) {
-      // Use OpenAI Assistants API
-      response = await fetch('https://api.openai.com/v1/chat/completions', {
+      // Use OpenAI Assistants API - create thread and run
+      const threadResponse = await fetch('https://api.openai.com/v1/threads', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${OPENAI_API_KEY}`,
           'Content-Type': 'application/json',
+          'OpenAI-Beta': 'assistants=v2'
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: messages,
-          temperature: 0.3,
-          max_tokens: 800,
-          stream: true,
-        }),
+          messages: [{ role: 'user', content: message }]
+        })
+      });
+
+      if (!threadResponse.ok) {
+        throw new Error('Failed to create thread');
+      }
+
+      const thread = await threadResponse.json();
+      
+      // Create run with streaming
+      response = await fetch(`https://api.openai.com/v1/threads/${thread.id}/runs`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+          'OpenAI-Beta': 'assistants=v2'
+        },
+        body: JSON.stringify({
+          assistant_id: adminSettings.platform_assistant_id,
+          stream: true
+        })
       });
     } else {
       // Use regular chat completion
+      const model = adminSettings?.ai_model || 'gpt-4o-mini';
       response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -111,7 +129,7 @@ Be concise, helpful, and guide users to the appropriate platform sections based 
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: model,
           messages: messages,
           temperature: 0.3,
           max_tokens: 800,

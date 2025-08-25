@@ -67,10 +67,10 @@ serve(async (req) => {
       console.error('Error fetching user profile:', profileError);
     }
 
-    // Get admin settings for global prompt
+    // Get admin settings for global prompt and assistant
     const { data: adminSettings, error: adminError } = await supabase
       .from('admin_settings')
-      .select('global_prompt')
+      .select('global_prompt, general_assistant_id, ai_model')
       .limit(1)
       .single();
 
@@ -159,20 +159,59 @@ serve(async (req) => {
 
     console.log('Calling OpenAI API with', messages.length, 'messages');
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: messages,
-        temperature: 0.7,
-        max_tokens: 1500,
-        stream: true,
-      }),
-    });
+    // Use assistant if configured, otherwise use regular chat completion
+    let response;
+    if (adminSettings?.general_assistant_id) {
+      // Use OpenAI Assistants API - create thread and run
+      const threadResponse = await fetch('https://api.openai.com/v1/threads', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+          'OpenAI-Beta': 'assistants=v2'
+        },
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: message }]
+        })
+      });
+
+      if (!threadResponse.ok) {
+        throw new Error('Failed to create thread');
+      }
+
+      const thread = await threadResponse.json();
+      
+      // Create run with streaming
+      response = await fetch(`https://api.openai.com/v1/threads/${thread.id}/runs`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+          'OpenAI-Beta': 'assistants=v2'
+        },
+        body: JSON.stringify({
+          assistant_id: adminSettings.general_assistant_id,
+          stream: true
+        })
+      });
+    } else {
+      // Use regular chat completion
+      const model = adminSettings?.ai_model || 'gpt-4o-mini';
+      response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: messages,
+          temperature: 0.7,
+          max_tokens: 1500,
+          stream: true,
+        }),
+      });
+    }
 
     if (!response.ok) {
       const errorData = await response.text();
