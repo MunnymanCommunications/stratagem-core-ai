@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.53.0';
+import PDFParser from 'https://esm.sh/pdf-parse@1.1.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -34,107 +35,47 @@ function logWithMetrics(level: 'info' | 'warn' | 'error', message: string, metri
   console.log(`[${level.toUpperCase()}] ${timestamp}: ${message}`, metrics ? JSON.stringify(metrics) : '');
 }
 
-// Enhanced PDF text extraction using proper PDF parsing techniques
-async function convertPDFToImages(arrayBuffer: ArrayBuffer): Promise<string[]> {
+// Proper PDF text extraction using pdf-parse library
+async function extractPDFText(arrayBuffer: ArrayBuffer): Promise<string[]> {
   try {
-    logWithMetrics('info', 'Starting enhanced PDF text extraction');
+    logWithMetrics('info', 'Starting proper PDF text extraction with pdf-parse');
     
-    const uint8Array = new Uint8Array(arrayBuffer);
-    let extractedText = '';
+    // Convert ArrayBuffer to Buffer for pdf-parse
+    const buffer = new Uint8Array(arrayBuffer);
     
-    // Convert to string for pattern matching
-    const decoder = new TextDecoder('latin1'); // Latin1 preserves byte values
-    const pdfString = decoder.decode(uint8Array);
+    // Parse PDF using pdf-parse library
+    const pdfData = await PDFParser(buffer);
     
-    // Method 1: Extract text from TJ operators (text showing operators)
-    const tjMatches = pdfString.match(/\[(.*?)\]\s*TJ/g) || [];
-    const textFromTJ = tjMatches.map(match => {
-      const content = match.match(/\[(.*?)\]/)?.[1] || '';
-      // Clean up the content
-      return content.replace(/[()]/g, '').replace(/\\\\/g, '').trim();
-    }).filter(text => text.length > 0 && /[a-zA-Z0-9]/.test(text));
-    
-    if (textFromTJ.length > 0) {
-      extractedText += textFromTJ.join(' ') + ' ';
-      logWithMetrics('info', 'Extracted text from TJ operators', { count: textFromTJ.length });
+    if (!pdfData || !pdfData.text) {
+      logWithMetrics('warn', 'No text content found in PDF');
+      return ['PDF appears to contain no readable text. Document may be image-based or encrypted.'];
     }
-    
-    // Method 2: Extract text from Tj operators (simple text showing)
-    const tjSimpleMatches = pdfString.match(/\((.*?)\)\s*Tj/g) || [];
-    const textFromTjSimple = tjSimpleMatches.map(match => {
-      const content = match.match(/\((.*?)\)/)?.[1] || '';
-      return content.replace(/\\[rn]/g, ' ').trim();
-    }).filter(text => text.length > 0 && /[a-zA-Z0-9]/.test(text));
-    
-    if (textFromTjSimple.length > 0) {
-      extractedText += textFromTjSimple.join(' ') + ' ';
-      logWithMetrics('info', 'Extracted text from Tj operators', { count: textFromTjSimple.length });
-    }
-    
-    // Method 3: Extract from parentheses (traditional method as fallback)
-    const parenMatches = pdfString.match(/\([^)]{3,}\)/g) || [];
-    const textFromParens = parenMatches.map(match => {
-      return match.slice(1, -1) // Remove parentheses
-        .replace(/\\[rn]/g, ' ')
-        .replace(/\\\(/g, '(')
-        .replace(/\\\)/g, ')')
-        .trim();
-    }).filter(text => text.length > 2 && /[a-zA-Z0-9]/.test(text));
-    
-    if (textFromParens.length > 0) {
-      extractedText += textFromParens.join(' ') + ' ';
-      logWithMetrics('info', 'Extracted text from parentheses', { count: textFromParens.length });
-    }
-    
-    // Method 4: Extract from stream content with better filtering
-    const streamMatches = pdfString.match(/stream\s*([\s\S]*?)\s*endstream/g) || [];
-    streamMatches.forEach((stream, index) => {
-      const streamContent = stream.replace(/^stream\s*/, '').replace(/\s*endstream$/, '');
-      
-      // Look for text patterns in streams
-      const streamText = streamContent.match(/\([^)]{3,}\)/g) || [];
-      streamText.forEach(text => {
-        const cleaned = text.slice(1, -1).replace(/\\[rn]/g, ' ').trim();
-        if (cleaned.length > 3 && /[a-zA-Z]/.test(cleaned)) {
-          extractedText += cleaned + ' ';
-        }
-      });
-      
-      // Also look for readable ASCII in streams
-      const readableChars = streamContent.match(/[a-zA-Z0-9\s.,;:!?$%-]{10,}/g) || [];
-      readableChars.forEach(text => {
-        const cleaned = text.trim();
-        if (cleaned.length > 10 && /[a-zA-Z]/.test(cleaned)) {
-          extractedText += cleaned + ' ';
-        }
-      });
-    });
     
     // Clean and normalize the extracted text
-    let cleanedText = extractedText
-      .replace(/\s+/g, ' ') // Normalize whitespace
-      .replace(/[^\w\s.,;:!?$%()-]/g, ' ') // Remove special chars but keep common punctuation
-      .replace(/\s+/g, ' ') // Normalize again
+    let cleanedText = pdfData.text
+      .replace(/\r\n/g, '\n') // Normalize line endings
+      .replace(/\r/g, '\n') // Convert remaining \r to \n
+      .replace(/\f/g, '\n\n') // Convert form feeds to double newlines (page breaks)
+      .replace(/\s+\n/g, '\n') // Remove trailing whitespace on lines
+      .replace(/\n\s+/g, '\n') // Remove leading whitespace on lines
+      .replace(/\n{3,}/g, '\n\n') // Limit consecutive newlines to maximum 2
+      .replace(/[ \t]{2,}/g, ' ') // Replace multiple spaces/tabs with single space
       .trim();
     
-    // Remove duplicate phrases (common in PDF extraction)
-    const words = cleanedText.split(' ');
-    const uniqueWords = [...new Set(words)];
-    if (uniqueWords.length < words.length * 0.7) {
-      // If more than 30% duplicates, deduplicate
-      cleanedText = uniqueWords.join(' ');
-    }
+    // Additional cleanup for common PDF artifacts
+    cleanedText = cleanedText
+      .replace(/^\s*\d+\s*$/gm, '') // Remove standalone page numbers on their own lines
+      .replace(/\n\s*\n/g, '\n\n') // Clean up any remaining empty lines
+      .trim();
     
-    logWithMetrics('info', 'PDF text extraction completed', { 
+    logWithMetrics('info', 'PDF text extraction completed successfully', { 
       extractedLength: cleanedText.length,
-      tjMatches: tjMatches.length,
-      tjSimpleMatches: tjSimpleMatches.length,
-      parenMatches: parenMatches.length,
-      streamMatches: streamMatches.length
+      totalPages: pdfData.numpages || 0,
+      info: pdfData.info ? Object.keys(pdfData.info).join(', ') : 'none'
     });
     
     // Return meaningful content or indicate if extraction failed
-    if (cleanedText.length > 20 && /[a-zA-Z]/.test(cleanedText)) {
+    if (cleanedText.length > 10 && /[a-zA-Z]/.test(cleanedText)) {
       return [cleanedText];
     } else {
       logWithMetrics('warn', 'Minimal text extracted, PDF may be image-based or encrypted');
@@ -146,7 +87,52 @@ async function convertPDFToImages(arrayBuffer: ArrayBuffer): Promise<string[]> {
       errorType: 'extraction_error',
       errorMessage: error.message 
     });
-    throw new Error(`PDF text extraction failed: ${error.message}`);
+    
+    // If pdf-parse fails, we could fall back to the regex method as a last resort
+    logWithMetrics('info', 'Attempting fallback text extraction method');
+    try {
+      return await fallbackTextExtraction(arrayBuffer);
+    } catch (fallbackError) {
+      logWithMetrics('error', 'Fallback extraction also failed');
+      throw new Error(`PDF text extraction failed: ${error.message}`);
+    }
+  }
+}
+
+// Fallback text extraction using regex patterns (simplified version of original)
+async function fallbackTextExtraction(arrayBuffer: ArrayBuffer): Promise<string[]> {
+  const uint8Array = new Uint8Array(arrayBuffer);
+  const decoder = new TextDecoder('latin1');
+  const pdfString = decoder.decode(uint8Array);
+  
+  let extractedText = '';
+  
+  // Extract text from common PDF text operators
+  const tjMatches = pdfString.match(/\[(.*?)\]\s*TJ/g) || [];
+  const tjSimpleMatches = pdfString.match(/\((.*?)\)\s*Tj/g) || [];
+  const parenMatches = pdfString.match(/\([^)]{3,}\)/g) || [];
+  
+  [...tjMatches, ...tjSimpleMatches, ...parenMatches].forEach(match => {
+    let content = '';
+    if (match.includes('[') && match.includes(']')) {
+      content = match.match(/\[(.*?)\]/)?.[1] || '';
+    } else if (match.includes('(') && match.includes(')')) {
+      content = match.match(/\((.*?)\)/)?.[1] || '';
+    }
+    
+    if (content && content.length > 2 && /[a-zA-Z0-9]/.test(content)) {
+      extractedText += content.replace(/[()\\]/g, '').trim() + ' ';
+    }
+  });
+  
+  const cleanedText = extractedText
+    .replace(/\s+/g, ' ')
+    .trim();
+  
+  if (cleanedText.length > 10 && /[a-zA-Z]/.test(cleanedText)) {
+    return [cleanedText];
+  } else {
+    return ['PDF appears to contain minimal readable text. Document may be image-based or require OCR processing.'];
   }
 }
 
@@ -256,7 +242,7 @@ serve(async (req) => {
     });
 
     // Extract and process PDF text
-    const extractedTexts = await convertPDFToImages(arrayBuffer);
+    const extractedTexts = await extractPDFText(arrayBuffer);
     
     if (!extractedTexts.length || !extractedTexts[0]) {
       throw new Error('No readable content found in PDF');
