@@ -196,6 +196,8 @@ serve(async (req) => {
     
     if (adminSettings?.general_assistant_id) {
       try {
+        console.log('Attempting to use OpenAI Assistant:', adminSettings.general_assistant_id);
+        
         // Use OpenAI Assistants API - create thread and run
         const threadResponse = await fetch('https://api.openai.com/v1/threads', {
           method: 'POST',
@@ -209,15 +211,19 @@ serve(async (req) => {
           })
         });
 
+        console.log('Thread creation response status:', threadResponse.status);
+
         if (!threadResponse.ok) {
           const errorText = await threadResponse.text();
-          console.log('Failed to create thread, falling back to chat completion. Status:', threadResponse.status, 'Error:', errorText);
+          console.error('Failed to create thread. Status:', threadResponse.status, 'Error:', errorText);
+          console.log('Falling back to chat completion due to thread creation failure');
           useAssistant = false;
         } else {
           const thread = await threadResponse.json();
+          console.log('Thread created successfully:', thread.id);
           
           // Create run with streaming
-          response = await fetch(`https://api.openai.com/v1/threads/${thread.id}/runs`, {
+          const runResponse = await fetch(`https://api.openai.com/v1/threads/${thread.id}/runs`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${OPENAI_API_KEY}`,
@@ -230,18 +236,26 @@ serve(async (req) => {
             })
           });
           
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.log('Assistant API failed, falling back to chat completion. Status:', response.status, 'Error:', errorText);
+          console.log('Run creation response status:', runResponse.status);
+          
+          if (!runResponse.ok) {
+            const errorText = await runResponse.text();
+            console.error('Assistant run failed. Status:', runResponse.status, 'Error:', errorText);
+            console.log('Falling back to chat completion due to run failure');
             useAssistant = false;
           } else {
+            console.log('Assistant run created successfully, using streaming response');
+            response = runResponse;
             useAssistant = true;
           }
         }
       } catch (error) {
-        console.log('Assistant API error, falling back to chat completion:', error);
+        console.error('Assistant API error:', error);
+        console.log('Falling back to chat completion due to exception');
         useAssistant = false;
       }
+    } else {
+      console.log('No assistant ID configured, using chat completion');
     }
     
     if (!useAssistant) {
