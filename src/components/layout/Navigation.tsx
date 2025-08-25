@@ -46,7 +46,7 @@ const Navigation = () => {
     { path: '/documents', label: 'Documents', icon: FileText },
     { path: '/business-tools', label: 'Business Tools', icon: Wrench },
     { path: '/analytics', label: 'Analytics', icon: BarChart3 },
-    { path: '/white-label', label: 'White-Label', icon: Palette },
+    { path: '/theme', label: 'Theme', icon: Palette },
     { path: '/subscription', label: 'Subscription', icon: CreditCard },
     { path: '/profile', label: 'Profile', icon: User },
     { path: '/admin', label: 'Admin Settings', icon: Settings },

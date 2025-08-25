@@ -12,7 +12,7 @@ import Chat from "./pages/Chat";
 import Documents from "./pages/Documents";
 import BusinessTools from "./pages/BusinessTools";
 import Analytics from "./pages/Analytics";
-import WhiteLabel from "./pages/WhiteLabel";
+import Theme from "./pages/Theme";
 import Subscription from "./pages/Subscription";
 import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
@@ -35,7 +35,7 @@ const App = () => (
               <Route path="/documents" element={<Documents />} />
               <Route path="/business-tools" element={<BusinessTools />} />
               <Route path="/analytics" element={<Analytics />} />
-              <Route path="/white-label" element={<WhiteLabel />} />
+              <Route path="/theme" element={<Theme />} />
               <Route path="/subscription" element={<Subscription />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/admin" element={<Admin />} />
