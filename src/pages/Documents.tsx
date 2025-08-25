@@ -36,10 +36,27 @@ const Documents = () => {
         .from('user_subscriptions')
         .select('tier, max_documents')
         .eq('user_id', user?.id)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
-      setSubscription(data);
+      
+      // If no subscription exists, create one
+      if (!data) {
+        const { data: newSub, error: createError } = await supabase
+          .from('user_subscriptions')
+          .insert({
+            user_id: user?.id,
+            tier: 'base',
+            max_documents: 1
+          })
+          .select('tier, max_documents')
+          .single();
+          
+        if (createError) throw createError;
+        setSubscription(newSub);
+      } else {
+        setSubscription(data);
+      }
     } catch (error) {
       console.error('Error fetching subscription:', error);
       toast.error('Failed to load subscription details');

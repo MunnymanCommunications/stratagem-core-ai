@@ -202,34 +202,11 @@ const Chat = () => {
 
         if (!response.ok) throw new Error('Failed to get AI response');
 
-        const reader = response.body?.getReader();
-        const decoder = new TextDecoder();
-
-        if (reader) {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            const chunk = decoder.decode(value);
-            const lines = chunk.split('\n');
-
-            for (const line of lines) {
-              if (line.startsWith('data: ')) {
-                try {
-                  const data = JSON.parse(line.slice(6));
-                  if (data.content) {
-                    fullResponse += data.content;
-                    setStreamingMessage(fullResponse);
-                  }
-                } catch (e) {
-                  // Skip invalid JSON
-                }
-              }
-            }
-          }
-        }
+        const data = await response.json();
+        fullResponse = data.response || "I'm having trouble connecting to my AI services right now. Please try again in a moment.";
+        
       } catch (error) {
-        console.error('Streaming error:', error);
+        console.error('AI API error:', error);
         fullResponse = "I'm having trouble connecting to my AI services right now. Please try again in a moment.";
         toast.error('Failed to get AI response');
       }
