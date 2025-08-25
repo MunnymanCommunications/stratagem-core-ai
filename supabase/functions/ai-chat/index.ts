@@ -181,6 +181,7 @@ serve(async (req) => {
     ];
 
     console.log('Calling OpenAI API with', messages.length, 'messages');
+    console.log('Assistant ID configured:', adminSettings?.general_assistant_id);
 
     // Use assistant if configured, otherwise use regular chat completion
     let response;
