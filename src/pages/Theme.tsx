@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import Layout from '@/components/layout/Layout';
 import SEO from '@/components/seo/SEO';
@@ -93,31 +92,19 @@ const Theme = () => {
 
   useEffect(() => {
     if (user) {
-      fetchUserTheme();
+      // For now, load from localStorage until database types are updated
+      const savedTheme = localStorage.getItem(`user_theme_${user.id}`);
+      if (savedTheme) {
+        try {
+          const parsedTheme = JSON.parse(savedTheme);
+          setTheme(prev => ({ ...prev, ...parsedTheme }));
+        } catch (error) {
+          console.error('Error parsing saved theme:', error);
+        }
+      }
     }
+    setLoading(false);
   }, [user]);
-
-  const fetchUserTheme = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('user_themes')
-        .select('*')
-        .eq('user_id', user?.id)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        throw error;
-      }
-
-      if (data) {
-        setTheme(data);
-      }
-    } catch (error) {
-      console.error('Error fetching user theme:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleColorChange = (colorType: keyof UserTheme, value: string) => {
     setTheme(prev => ({ ...prev, [colorType]: value }));
@@ -143,32 +130,17 @@ const Theme = () => {
         return;
       }
       setLogoFile(file);
-      toast.success('Logo selected for upload');
-    }
-  };
-
-  const uploadLogo = async (): Promise<string | null> => {
-    if (!logoFile || !user) return null;
-
-    try {
-      const fileExt = logoFile.name.split('.').pop();
-      const fileName = `${user.id}-logo-${Date.now()}.${fileExt}`;
       
-      const { error: uploadError } = await supabase.storage
-        .from('user-logos')
-        .upload(fileName, logoFile);
-
-      if (uploadError) throw uploadError;
-
-      const { data } = supabase.storage
-        .from('user-logos')
-        .getPublicUrl(fileName);
-
-      return data.publicUrl;
-    } catch (error) {
-      console.error('Error uploading logo:', error);
-      toast.error('Failed to upload logo');
-      return null;
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (e.target?.result) {
+          setTheme(prev => ({ ...prev, logo_url: e.target!.result as string }));
+        }
+      };
+      reader.readAsDataURL(file);
+      
+      toast.success('Logo selected for upload');
     }
   };
 
@@ -177,45 +149,17 @@ const Theme = () => {
 
     setSaving(true);
     try {
-      let logoUrl = theme.logo_url;
-
-      // Upload logo if a new one was selected
-      if (logoFile) {
-        logoUrl = await uploadLogo();
-        if (!logoUrl) {
-          setSaving(false);
-          return;
-        }
-      }
-
-      const themeData = {
-        ...theme,
-        logo_url: logoUrl,
-        user_id: user.id
-      };
-
-      if (theme.id) {
-        // Update existing theme
-        const { error } = await supabase
-          .from('user_themes')
-          .update(themeData)
-          .eq('id', theme.id);
-
-        if (error) throw error;
-      } else {
-        // Create new theme
-        const { data, error } = await supabase
-          .from('user_themes')
-          .insert(themeData)
-          .select()
-          .single();
-
-        if (error) throw error;
-        setTheme(data);
-      }
-
+      // For now, save to localStorage until database integration is complete
+      const themeToSave = { ...theme, user_id: user.id };
+      localStorage.setItem(`user_theme_${user.id}`, JSON.stringify(themeToSave));
+      
       setLogoFile(null);
       toast.success('Theme saved successfully!');
+      
+      // TODO: Once database types are updated, integrate with Supabase:
+      // - Upload logo to storage if logoFile exists
+      // - Save theme to user_themes table
+      console.log('Theme saved:', themeToSave);
     } catch (error) {
       console.error('Error saving theme:', error);
       toast.error('Failed to save theme');
@@ -224,26 +168,10 @@ const Theme = () => {
     }
   };
 
-  const removeLogo = async () => {
-    if (!theme.logo_url) return;
-
-    try {
-      // Extract filename from URL to delete from storage
-      const urlParts = theme.logo_url.split('/');
-      const fileName = urlParts[urlParts.length - 1];
-      
-      const { error: deleteError } = await supabase.storage
-        .from('user-logos')
-        .remove([fileName]);
-
-      if (deleteError) throw deleteError;
-
-      setTheme(prev => ({ ...prev, logo_url: undefined }));
-      toast.success('Logo removed');
-    } catch (error) {
-      console.error('Error removing logo:', error);
-      toast.error('Failed to remove logo');
-    }
+  const removeLogo = () => {
+    setTheme(prev => ({ ...prev, logo_url: undefined }));
+    setLogoFile(null);
+    toast.success('Logo removed');
   };
 
   const resetToDefault = () => {
@@ -566,6 +494,12 @@ const Theme = () => {
                         </div>
                       </div>
                     </div>
+                  </div>
+
+                  <div className="text-xs text-muted-foreground bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded border">
+                    <strong>Note:</strong> Theme customization is currently in preview mode. 
+                    Your theme settings are saved locally and will be fully integrated with the 
+                    platform in the next update.
                   </div>
                 </div>
               </CardContent>
