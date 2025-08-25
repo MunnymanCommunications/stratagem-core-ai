@@ -184,40 +184,57 @@ serve(async (req) => {
 
     // Use assistant if configured, otherwise use regular chat completion
     let response;
+    let useAssistant = false;
+    
     if (adminSettings?.general_assistant_id) {
-      // Use OpenAI Assistants API - create thread and run
-      const threadResponse = await fetch('https://api.openai.com/v1/threads', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${OPENAI_API_KEY}`,
-          'Content-Type': 'application/json',
-          'OpenAI-Beta': 'assistants=v2'
-        },
-        body: JSON.stringify({
-          messages: [{ role: 'user', content: userContent }]
-        })
-      });
+      try {
+        // Use OpenAI Assistants API - create thread and run
+        const threadResponse = await fetch('https://api.openai.com/v1/threads', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${OPENAI_API_KEY}`,
+            'Content-Type': 'application/json',
+            'OpenAI-Beta': 'assistants=v2'
+          },
+          body: JSON.stringify({
+            messages: [{ role: 'user', content: userContent }]
+          })
+        });
 
-      if (!threadResponse.ok) {
-        throw new Error('Failed to create thread');
+        if (!threadResponse.ok) {
+          console.log('Failed to create thread, falling back to chat completion');
+          useAssistant = false;
+        } else {
+          const thread = await threadResponse.json();
+          
+          // Create run with streaming
+          response = await fetch(`https://api.openai.com/v1/threads/${thread.id}/runs`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${OPENAI_API_KEY}`,
+              'Content-Type': 'application/json',
+              'OpenAI-Beta': 'assistants=v2'
+            },
+            body: JSON.stringify({
+              assistant_id: adminSettings.general_assistant_id,
+              stream: true
+            })
+          });
+          
+          if (!response.ok) {
+            console.log('Assistant API failed, falling back to chat completion');
+            useAssistant = false;
+          } else {
+            useAssistant = true;
+          }
+        }
+      } catch (error) {
+        console.log('Assistant API error, falling back to chat completion:', error);
+        useAssistant = false;
       }
-
-      const thread = await threadResponse.json();
-      
-      // Create run with streaming
-      response = await fetch(`https://api.openai.com/v1/threads/${thread.id}/runs`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${OPENAI_API_KEY}`,
-          'Content-Type': 'application/json',
-          'OpenAI-Beta': 'assistants=v2'
-        },
-        body: JSON.stringify({
-          assistant_id: adminSettings.general_assistant_id,
-          stream: true
-        })
-      });
-    } else {
+    }
+    
+    if (!useAssistant) {
       // Use regular chat completion with proper model handling
       const model = adminSettings?.ai_model || 'gpt-4o-mini';
       
