@@ -14,6 +14,17 @@ interface RequestBody {
     content: string;
   }>;
   userId: string;
+  structuredData?: {
+    projectDriver: string;
+    priorities: string;
+    budget: string;
+    storageAndCameras: string;
+    decisionMaker: string;
+    siteLayout: string;
+    siteImages: string[];
+    projectRoadmap: string;
+    additionalNotes: string;
+  };
 }
 
 serve(async (req) => {
@@ -33,7 +44,7 @@ serve(async (req) => {
     
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const { message, conversationHistory, userId }: RequestBody = await req.json();
+    const { message, conversationHistory, userId, structuredData }: RequestBody = await req.json();
 
     console.log('Processing AI chat request for user:', userId);
 
@@ -151,10 +162,22 @@ serve(async (req) => {
 
     systemPrompt += documentsContext + userContext + '\n\nWhen generating proposals or invoices, use the available documents to include accurate pricing, services, and company information. Always be helpful and professional.';
 
+    // Prepare user content for OpenAI (handle images if present)
+    let userContent: any = message;
+    if (structuredData && structuredData.siteImages && structuredData.siteImages.length > 0) {
+      userContent = [
+        { type: 'text', text: message },
+        ...structuredData.siteImages.map(imageData => ({
+          type: 'image_url',
+          image_url: { url: imageData }
+        }))
+      ];
+    }
+
     const messages = [
       { role: 'system', content: systemPrompt },
       ...conversationHistory.slice(-10), // Include recent conversation history
-      { role: 'user', content: message }
+      { role: 'user', content: userContent }
     ];
 
     console.log('Calling OpenAI API with', messages.length, 'messages');
@@ -171,7 +194,7 @@ serve(async (req) => {
           'OpenAI-Beta': 'assistants=v2'
         },
         body: JSON.stringify({
-          messages: [{ role: 'user', content: message }]
+          messages: [{ role: 'user', content: userContent }]
         })
       });
 
@@ -195,21 +218,35 @@ serve(async (req) => {
         })
       });
     } else {
-      // Use regular chat completion
+      // Use regular chat completion with proper model handling
       const model = adminSettings?.ai_model || 'gpt-4o-mini';
+      
+      // For newer models like GPT-5, use max_completion_tokens and remove temperature
+      const isNewerModel = model.includes('gpt-5') || 
+                           model.includes('gpt-4.1') || 
+                           model.includes('o3') || 
+                           model.includes('o4');
+
+      const requestBody: any = {
+        model: model,
+        messages: messages,
+        stream: true
+      };
+
+      if (isNewerModel) {
+        requestBody.max_completion_tokens = 1500;
+      } else {
+        requestBody.max_tokens = 1500;
+        requestBody.temperature = 0.7;
+      }
+
       response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${OPENAI_API_KEY}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          model: model,
-          messages: messages,
-          temperature: 0.7,
-          max_tokens: 1500,
-          stream: true,
-        }),
+        body: JSON.stringify(requestBody),
       });
     }
 
