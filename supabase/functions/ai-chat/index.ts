@@ -202,7 +202,8 @@ serve(async (req) => {
         });
 
         if (!threadResponse.ok) {
-          console.log('Failed to create thread, falling back to chat completion');
+          const errorText = await threadResponse.text();
+          console.log('Failed to create thread, falling back to chat completion. Status:', threadResponse.status, 'Error:', errorText);
           useAssistant = false;
         } else {
           const thread = await threadResponse.json();
@@ -222,7 +223,8 @@ serve(async (req) => {
           });
           
           if (!response.ok) {
-            console.log('Assistant API failed, falling back to chat completion');
+            const errorText = await response.text();
+            console.log('Assistant API failed, falling back to chat completion. Status:', response.status, 'Error:', errorText);
             useAssistant = false;
           } else {
             useAssistant = true;
