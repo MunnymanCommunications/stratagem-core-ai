@@ -330,12 +330,31 @@ serve(async (req) => {
 
                 try {
                   const parsed = JSON.parse(data);
-                  const content = parsed.choices?.[0]?.delta?.content;
-                  if (content) {
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`));
+                  
+                  // Handle Assistant API streaming format
+                  if (useAssistant) {
+                    if (parsed.event === 'thread.message.delta') {
+                      const content = parsed.data?.delta?.content?.[0]?.text?.value;
+                      if (content) {
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`));
+                      }
+                    } else if (parsed.event === 'thread.run.completed') {
+                      controller.close();
+                      return;
+                    } else if (parsed.event === 'thread.run.failed') {
+                      console.error('Assistant run failed:', parsed.data);
+                      controller.close();
+                      return;
+                    }
+                  } else {
+                    // Handle regular chat completion streaming format
+                    const content = parsed.choices?.[0]?.delta?.content;
+                    if (content) {
+                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`));
+                    }
                   }
                 } catch (e) {
-                  // Skip invalid JSON
+                  console.log('Failed to parse streaming data:', e, 'Raw data:', data);
                 }
               }
             }
