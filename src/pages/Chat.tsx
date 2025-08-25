@@ -7,13 +7,16 @@ import QuickActions from '@/components/chat/QuickActions';
 import ConversationList from '@/components/chat/ConversationList';
 import MessageFormatter from '@/components/chat/MessageFormatter';
 import DocumentEditor from '@/components/documents/DocumentEditor';
+import AssessmentForm from '@/components/chat/AssessmentForm';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Send, Bot, User, Plus, FileText } from 'lucide-react';
+import { Send, Bot, User, Plus, FileText, MessageSquare, ClipboardList } from 'lucide-react';
 
 interface Message {
   id: string;
@@ -28,6 +31,18 @@ interface Conversation {
   created_at: string;
 }
 
+interface AssessmentData {
+  step1: string;
+  step2: string;
+  step3: string;
+  step4: string;
+  step5: string;
+  step6: string;
+  step6Images: File[];
+  step7: string;
+  additionalNotes: string;
+}
+
 const Chat = () => {
   const { user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -39,6 +54,7 @@ const Chat = () => {
   const [showDocumentEditor, setShowDocumentEditor] = useState(false);
   const [generatedContent, setGeneratedContent] = useState('');
   const [streamingMessage, setStreamingMessage] = useState('');
+  const [isAssessmentMode, setIsAssessmentMode] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -313,6 +329,71 @@ const Chat = () => {
     }
   };
 
+  const handleAssessmentSubmit = async (data: AssessmentData) => {
+    if (!currentConversation) {
+      await createNewConversation();
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Convert files to base64 for API call
+      const imagesBase64 = await Promise.all(
+        data.step6Images.map(async (file) => {
+          const reader = new FileReader();
+          return new Promise<string>((resolve) => {
+            reader.onload = () => resolve(reader.result as string);
+            reader.readAsDataURL(file);
+          });
+        })
+      );
+
+      // Structure the assessment data for AI
+      const structuredData = {
+        projectDriver: data.step1,
+        priorities: data.step2,
+        budget: data.step3,
+        storageAndCameras: data.step4,
+        decisionMaker: data.step5,
+        siteLayout: data.step6,
+        siteImages: imagesBase64,
+        projectRoadmap: data.step7,
+        additionalNotes: data.additionalNotes
+      };
+
+      const assessmentMessage = `STRUCTURED ASSESSMENT DATA:
+
+**Project Driver:** ${data.step1}
+
+**Client Priorities:** ${data.step2}
+
+**Budget Information:** ${data.step3}
+
+**Storage & Camera Requirements:** ${data.step4}
+
+**Decision Maker:** ${data.step5}
+
+**Site Layout Information:** ${data.step6}
+${data.step6Images.length > 0 ? `\n**Site Images:** ${data.step6Images.length} image(s) uploaded for analysis` : ''}
+
+**Project Roadmap:** ${data.step7}
+
+${data.additionalNotes ? `**Additional Notes:** ${data.additionalNotes}` : ''}
+
+Please provide a comprehensive security camera system assessment based on this structured information. Include specific recommendations, pricing considerations, and implementation timeline.`;
+
+      // Send structured message
+      await sendMessage(assessmentMessage);
+      
+      // Switch back to chat mode after submission
+      setIsAssessmentMode(false);
+      
+    } catch (error) {
+      console.error('Error submitting assessment:', error);
+      toast.error('Failed to submit assessment');
+    }
+  };
+
   return (
     <Layout>
       <SEO
@@ -350,91 +431,125 @@ const Chat = () => {
           <div className="lg:col-span-3">
             <Card className="h-full flex flex-col">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Bot className="h-5 w-5" />
-                  AI Assistant
-                  <Badge variant="secondary">Beta</Badge>
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Bot className="h-5 w-5" />
+                    AI Assistant
+                    <Badge variant="secondary">Beta</Badge>
+                  </CardTitle>
+                  
+                  {/* Mode Toggle */}
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <MessageSquare className="h-4 w-4" />
+                      <Label htmlFor="mode-toggle" className="text-sm font-medium">
+                        Free Chat
+                      </Label>
+                    </div>
+                    <Switch
+                      id="mode-toggle"
+                      checked={isAssessmentMode}
+                      onCheckedChange={setIsAssessmentMode}
+                    />
+                    <div className="flex items-center gap-2">
+                      <ClipboardList className="h-4 w-4" />
+                      <Label htmlFor="mode-toggle" className="text-sm font-medium">
+                        7-Step Assessment
+                      </Label>
+                    </div>
+                  </div>
+                </div>
               </CardHeader>
               
               {currentConversation ? (
                 <>
                   <CardContent className="flex-1 p-0">
-                    <ScrollArea className="h-[calc(100vh-16rem)] p-4">
-                      <div className="space-y-4">
-                        {messages.map((message) => (
-                          <div
-                            key={message.id}
-                            className={`flex gap-3 ${
-                              message.role === 'user' ? 'justify-end' : 'justify-start'
-                            }`}
-                          >
-                            {message.role === 'assistant' && (
-                              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-                                <Bot className="h-4 w-4 text-primary-foreground" />
-                              </div>
-                            )}
+                    {isAssessmentMode ? (
+                      <div className="h-[calc(100vh-16rem)] p-6 overflow-y-auto">
+                        <AssessmentForm 
+                          onSubmit={handleAssessmentSubmit}
+                          isLoading={isLoading}
+                        />
+                      </div>
+                    ) : (
+                      <ScrollArea className="h-[calc(100vh-16rem)] p-4">
+                        <div className="space-y-4">
+                          {messages.map((message) => (
                             <div
-                              className={`max-w-[80%] p-3 rounded-lg ${
-                                message.role === 'user'
-                                  ? 'bg-primary text-primary-foreground'
-                                  : 'bg-muted'
+                              key={message.id}
+                              className={`flex gap-3 ${
+                                message.role === 'user' ? 'justify-end' : 'justify-start'
                               }`}
                             >
-                              <MessageFormatter content={message.content} />
-                              <p className="text-xs opacity-70 mt-2">
-                                {new Date(message.created_at).toLocaleTimeString()}
-                              </p>
-                            </div>
-                            {message.role === 'user' && (
-                              <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                                <User className="h-4 w-4 text-muted-foreground" />
+                              {message.role === 'assistant' && (
+                                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                                  <Bot className="h-4 w-4 text-primary-foreground" />
+                                </div>
+                              )}
+                              <div
+                                className={`max-w-[80%] p-3 rounded-lg ${
+                                  message.role === 'user'
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'bg-muted'
+                                }`}
+                              >
+                                <MessageFormatter content={message.content} />
+                                <p className="text-xs opacity-70 mt-2">
+                                  {new Date(message.created_at).toLocaleTimeString()}
+                                </p>
                               </div>
-                            )}
-                          </div>
-                        ))}
-                        {(isLoading || streamingMessage) && (
-                          <div className="flex gap-3 justify-start">
-                            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-                              <Bot className="h-4 w-4 text-primary-foreground" />
-                            </div>
-                            <div className="bg-muted p-3 rounded-lg max-w-[80%]">
-                              {streamingMessage ? (
-                                <MessageFormatter content={streamingMessage} />
-                              ) : (
-                                <div className="flex space-x-1">
-                                  <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />
-                                  <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                                  <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                              {message.role === 'user' && (
+                                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                                  <User className="h-4 w-4 text-muted-foreground" />
                                 </div>
                               )}
                             </div>
-                          </div>
-                        )}
-                        <div ref={messagesEndRef} />
-                      </div>
-                    </ScrollArea>
+                          ))}
+                          {(isLoading || streamingMessage) && (
+                            <div className="flex gap-3 justify-start">
+                              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                                <Bot className="h-4 w-4 text-primary-foreground" />
+                              </div>
+                              <div className="bg-muted p-3 rounded-lg max-w-[80%]">
+                                {streamingMessage ? (
+                                  <MessageFormatter content={streamingMessage} />
+                                ) : (
+                                  <div className="flex space-x-1">
+                                    <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />
+                                    <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                                    <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                          <div ref={messagesEndRef} />
+                        </div>
+                      </ScrollArea>
+                    )}
                   </CardContent>
                   
-                  <div className="p-4 border-t space-y-4">
-                    <QuickActions 
-                      onQuickAction={handleQuickAction} 
-                      activeAction={activeAction}
-                      onActionSelect={handleActionSelect}
-                    />
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="Type your message..."
-                        value={inputMessage}
-                        onChange={(e) => setInputMessage(e.target.value)}
-                        onKeyPress={handleKeyPress}
-                        disabled={isLoading}
+                  {!isAssessmentMode && (
+                    <div className="p-4 border-t space-y-4">
+                      <QuickActions 
+                        onQuickAction={handleQuickAction} 
+                        activeAction={activeAction}
+                        onActionSelect={handleActionSelect}
                       />
-                      <Button onClick={() => sendMessage()} disabled={!inputMessage.trim() || isLoading}>
-                        <Send className="h-4 w-4" />
-                      </Button>
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Type your message..."
+                          value={inputMessage}
+                          onChange={(e) => setInputMessage(e.target.value)}
+                          onKeyPress={handleKeyPress}
+                          disabled={isLoading}
+                        />
+                        <Button onClick={() => sendMessage()} disabled={!inputMessage.trim() || isLoading}>
+                          <Send className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </>
               ) : (
                 <CardContent className="flex-1 flex items-center justify-center">
