@@ -34,11 +34,6 @@ serve(async (req) => {
   }
 
   try {
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-    if (!OPENAI_API_KEY) {
-      throw new Error('OPENAI_API_KEY is not set');
-    }
-
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     
@@ -47,6 +42,25 @@ serve(async (req) => {
     const { message, conversationHistory, userId, structuredData }: RequestBody = await req.json();
 
     console.log('Processing AI chat request for user:', userId);
+
+    // Get admin settings first to get API key
+    const { data: adminSettings, error: adminError } = await supabase
+      .from('admin_settings')
+      .select('global_prompt, general_assistant_id, ai_model, api_key_encrypted')
+      .limit(1)
+      .single();
+
+    if (adminError) {
+      console.error('Error fetching admin settings:', adminError);
+    }
+
+    // Get API key from admin settings or fall back to environment variable
+    const OPENAI_API_KEY = adminSettings?.api_key_encrypted || Deno.env.get('OPENAI_API_KEY');
+    if (!OPENAI_API_KEY) {
+      throw new Error('OpenAI API key is not configured. Please set it in Admin Settings or environment variables.');
+    }
+
+    console.log('Using API key from:', adminSettings?.api_key_encrypted ? 'admin settings' : 'environment variables');
 
     // Get user documents with extracted text
     const { data: userDocs, error: userDocsError } = await supabase
@@ -77,13 +91,6 @@ serve(async (req) => {
     if (profileError) {
       console.error('Error fetching user profile:', profileError);
     }
-
-    // Get admin settings for global prompt and assistant
-    const { data: adminSettings, error: adminError } = await supabase
-      .from('admin_settings')
-      .select('global_prompt, general_assistant_id, ai_model')
-      .limit(1)
-      .single();
 
     if (adminError) {
       console.error('Error fetching admin settings:', adminError);
