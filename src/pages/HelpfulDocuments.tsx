@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { FileText, Download, Eye, Printer } from 'lucide-react';
 
-interface HelpfulDocument {
+interface HelpfulWorksheet {
   id: string;
   filename: string;
   file_path: string;
@@ -18,63 +18,63 @@ interface HelpfulDocument {
   created_at: string;
 }
 
-const HelpfulDocuments = () => {
+const HelpfulWorksheets = () => {
   const { user } = useAuth();
-  const [documents, setDocuments] = useState<HelpfulDocument[]>([]);
+  const [worksheets, setWorksheets] = useState<HelpfulWorksheet[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (user) {
-      fetchHelpfulDocuments();
+      fetchHelpfulWorksheets();
     }
   }, [user]);
 
-  const fetchHelpfulDocuments = async () => {
+  const fetchHelpfulWorksheets = async () => {
     try {
       const { data, error } = await supabase
-        .from('global_documents')
+        .from('helpful_worksheets')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setDocuments(data || []);
+      setWorksheets(data || []);
     } catch (error) {
-      console.error('Error fetching helpful documents:', error);
-      toast.error('Failed to load documents');
+      console.error('Error fetching helpful worksheets:', error);
+      toast.error('Failed to load worksheets');
     } finally {
       setLoading(false);
     }
   };
 
-  const downloadDocument = async (doc: HelpfulDocument) => {
+  const downloadWorksheet = async (worksheet: HelpfulWorksheet) => {
     try {
       const { data, error } = await supabase.storage
         .from('documents')
-        .download(doc.file_path);
+        .download(worksheet.file_path);
 
       if (error) throw error;
 
       const url = URL.createObjectURL(data);
       const a = document.createElement('a');
       a.href = url;
-      a.download = doc.filename;
+      a.download = worksheet.filename;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       
-      toast.success('Document downloaded successfully');
+      toast.success('Worksheet downloaded successfully');
     } catch (error) {
-      console.error('Error downloading document:', error);
-      toast.error('Failed to download document');
+      console.error('Error downloading worksheet:', error);
+      toast.error('Failed to download worksheet');
     }
   };
 
-  const viewDocument = async (doc: HelpfulDocument) => {
+  const viewWorksheet = async (worksheet: HelpfulWorksheet) => {
     try {
       const { data, error } = await supabase.storage
         .from('documents')
-        .createSignedUrl(doc.file_path, 3600); // 1 hour expiry
+        .createSignedUrl(worksheet.file_path, 3600); // 1 hour expiry
 
       if (error) throw error;
       
@@ -82,16 +82,16 @@ const HelpfulDocuments = () => {
         window.open(data.signedUrl, '_blank');
       }
     } catch (error) {
-      console.error('Error viewing document:', error);
-      toast.error('Failed to open document');
+      console.error('Error viewing worksheet:', error);
+      toast.error('Failed to open worksheet');
     }
   };
 
-  const printDocument = async (doc: HelpfulDocument) => {
+  const printWorksheet = async (worksheet: HelpfulWorksheet) => {
     try {
       const { data, error } = await supabase.storage
         .from('documents')
-        .createSignedUrl(doc.file_path, 3600);
+        .createSignedUrl(worksheet.file_path, 3600);
 
       if (error) throw error;
       
@@ -109,8 +109,8 @@ const HelpfulDocuments = () => {
         };
       }
     } catch (error) {
-      console.error('Error printing document:', error);
-      toast.error('Failed to print document');
+      console.error('Error printing worksheet:', error);
+      toast.error('Failed to print worksheet');
     }
   };
 
@@ -134,7 +134,7 @@ const HelpfulDocuments = () => {
       <Layout>
         <div className="max-w-6xl mx-auto">
           <div className="text-center py-8">
-            <h2 className="text-2xl font-semibold mb-2">Loading Documents...</h2>
+            <h2 className="text-2xl font-semibold mb-2">Loading Worksheets...</h2>
           </div>
         </div>
       </Layout>
@@ -144,53 +144,53 @@ const HelpfulDocuments = () => {
   return (
     <Layout>
       <SEO
-        title="Helpful Documents — DesignR AI"
-        description="Access helpful guides and resources provided by administrators."
+        title="Helpful Worksheets — DesignR AI"
+        description="Access helpful worksheets and resources provided by administrators."
         canonical="/helpful-documents"
       />
       <div className="max-w-6xl mx-auto space-y-6">
         <header>
-          <h1 className="text-3xl font-bold">Helpful Documents</h1>
+          <h1 className="text-3xl font-bold">Helpful Worksheets</h1>
           <p className="text-muted-foreground mt-2">
-            Access guides, templates, and resources provided by administrators
+            Access worksheets, templates, and resources provided by administrators
           </p>
         </header>
 
-        {documents.length === 0 ? (
+        {worksheets.length === 0 ? (
           <Card>
             <CardContent className="text-center py-8">
               <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No Documents Available</h3>
+              <h3 className="text-lg font-semibold mb-2">No Worksheets Available</h3>
               <p className="text-muted-foreground">
-                No helpful documents have been uploaded by administrators yet.
+                No helpful worksheets have been uploaded by administrators yet.
               </p>
             </CardContent>
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {documents.map((doc) => (
-              <Card key={doc.id} className="hover:shadow-lg transition-shadow">
+            {worksheets.map((worksheet) => (
+              <Card key={worksheet.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <FileText className="h-8 w-8 text-primary" />
-                    <Badge className={getFileTypeColor(doc.mime_type)}>
-                      {doc.mime_type.split('/')[1]?.toUpperCase()}
+                    <Badge className={getFileTypeColor(worksheet.mime_type)}>
+                      {worksheet.mime_type.split('/')[1]?.toUpperCase()}
                     </Badge>
                   </div>
                   <CardTitle className="text-lg leading-tight">
-                    {doc.filename}
+                    {worksheet.filename}
                   </CardTitle>
                   <CardDescription>
                     <div className="flex justify-between items-center text-sm">
-                      <span>{formatFileSize(doc.file_size)}</span>
-                      <span>{new Date(doc.created_at).toLocaleDateString()}</span>
+                      <span>{formatFileSize(worksheet.file_size)}</span>
+                      <span>{new Date(worksheet.created_at).toLocaleDateString()}</span>
                     </div>
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-col gap-2">
                     <Button
-                      onClick={() => viewDocument(doc)}
+                      onClick={() => viewWorksheet(worksheet)}
                       variant="outline"
                       size="sm"
                       className="w-full"
@@ -200,7 +200,7 @@ const HelpfulDocuments = () => {
                     </Button>
                     <div className="grid grid-cols-2 gap-2">
                       <Button
-                        onClick={() => downloadDocument(doc)}
+                        onClick={() => downloadWorksheet(worksheet)}
                         variant="outline"
                         size="sm"
                       >
@@ -208,7 +208,7 @@ const HelpfulDocuments = () => {
                         Download
                       </Button>
                       <Button
-                        onClick={() => printDocument(doc)}
+                        onClick={() => printWorksheet(worksheet)}
                         variant="outline"
                         size="sm"
                       >
@@ -223,10 +223,10 @@ const HelpfulDocuments = () => {
           </div>
         )}
 
-        {documents.length > 0 && (
+        {worksheets.length > 0 && (
           <div className="text-center pt-4">
             <p className="text-sm text-muted-foreground">
-              {documents.length} document{documents.length !== 1 ? 's' : ''} available
+              {worksheets.length} worksheet{worksheets.length !== 1 ? 's' : ''} available
             </p>
           </div>
         )}
@@ -235,4 +235,4 @@ const HelpfulDocuments = () => {
   );
 };
 
-export default HelpfulDocuments;
+export default HelpfulWorksheets;

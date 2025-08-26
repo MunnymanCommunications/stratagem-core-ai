@@ -205,6 +205,39 @@ export type Database = {
         }
         Relationships: []
       }
+      global_ai_documents: {
+        Row: {
+          created_at: string
+          extracted_text: string | null
+          file_path: string
+          file_size: number
+          filename: string
+          id: string
+          mime_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          extracted_text?: string | null
+          file_path: string
+          file_size: number
+          filename: string
+          id?: string
+          mime_type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          extracted_text?: string | null
+          file_path?: string
+          file_size?: number
+          filename?: string
+          id?: string
+          mime_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       global_documents: {
         Row: {
           created_at: string
@@ -229,6 +262,36 @@ export type Database = {
         Update: {
           created_at?: string
           extracted_text?: string | null
+          file_path?: string
+          file_size?: number
+          filename?: string
+          id?: string
+          mime_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      helpful_worksheets: {
+        Row: {
+          created_at: string
+          file_path: string
+          file_size: number
+          filename: string
+          id: string
+          mime_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          file_path: string
+          file_size: number
+          filename: string
+          id?: string
+          mime_type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
           file_path?: string
           file_size?: number
           filename?: string

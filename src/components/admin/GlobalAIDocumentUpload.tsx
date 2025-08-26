@@ -7,10 +7,10 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
-import { Upload, FileText, Trash2, AlertCircle } from 'lucide-react';
+import { Upload, FileText, Trash2, AlertCircle, Brain } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 
-interface HelpfulDocument {
+interface GlobalAIDocument {
   id: string;
   filename: string;
   file_size: number;
@@ -20,29 +20,29 @@ interface HelpfulDocument {
   extracted_text?: string;
 }
 
-const HelpfulDocumentUpload = () => {
-  const [documents, setDocuments] = useState<HelpfulDocument[]>([]);
+const GlobalAIDocumentUpload = () => {
+  const [documents, setDocuments] = useState<GlobalAIDocument[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [customName, setCustomName] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchHelpfulDocuments();
+    fetchGlobalAIDocuments();
   }, []);
 
-  const fetchHelpfulDocuments = async () => {
+  const fetchGlobalAIDocuments = async () => {
     try {
       const { data, error } = await supabase
-        .from('global_documents')
+        .from('global_ai_documents')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       setDocuments(data || []);
     } catch (error) {
-      console.error('Error fetching helpful documents:', error);
-      toast.error('Failed to load documents');
+      console.error('Error fetching global AI documents:', error);
+      toast.error('Failed to load AI documents');
     } finally {
       setLoading(false);
     }
@@ -74,7 +74,7 @@ const HelpfulDocumentUpload = () => {
       const fileName = customName.trim() 
         ? `${customName.replace(/[^a-zA-Z0-9.-]/g, '_')}.${file.name.split('.').pop()}`
         : file.name;
-      const filePath = `helpful-documents/${timestamp}_${fileName}`;
+      const filePath = `global-ai-documents/${timestamp}_${fileName}`;
 
       // Upload file to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
@@ -114,7 +114,7 @@ const HelpfulDocumentUpload = () => {
 
       // Save document metadata to database
       const { data: docData, error: docError } = await supabase
-        .from('global_documents')
+        .from('global_ai_documents')
         .insert({
           filename: fileName,
           file_path: filePath,
@@ -128,12 +128,12 @@ const HelpfulDocumentUpload = () => {
       if (docError) throw docError;
 
       setUploadProgress(100);
-      toast.success('Document uploaded successfully');
+      toast.success('AI document uploaded successfully');
       setCustomName('');
-      fetchHelpfulDocuments(); // Refresh the list
+      fetchGlobalAIDocuments(); // Refresh the list
     } catch (error) {
-      console.error('Error uploading document:', error);
-      toast.error('Failed to upload document');
+      console.error('Error uploading AI document:', error);
+      toast.error('Failed to upload AI document');
     } finally {
       setUploading(false);
       setUploadProgress(0);
@@ -144,7 +144,7 @@ const HelpfulDocumentUpload = () => {
     handleFileUpload(files);
   };
 
-  const deleteDocument = async (doc: HelpfulDocument) => {
+  const deleteDocument = async (doc: GlobalAIDocument) => {
     try {
       // Delete from storage
       const { error: storageError } = await supabase.storage
@@ -155,17 +155,17 @@ const HelpfulDocumentUpload = () => {
 
       // Delete from database
       const { error: dbError } = await supabase
-        .from('global_documents')
+        .from('global_ai_documents')
         .delete()
         .eq('id', doc.id);
 
       if (dbError) throw dbError;
 
-      toast.success('Document deleted successfully');
-      fetchHelpfulDocuments(); // Refresh the list
+      toast.success('AI document deleted successfully');
+      fetchGlobalAIDocuments(); // Refresh the list
     } catch (error) {
-      console.error('Error deleting document:', error);
-      toast.error('Failed to delete document');
+      console.error('Error deleting AI document:', error);
+      toast.error('Failed to delete AI document');
     }
   };
 
@@ -200,11 +200,11 @@ const HelpfulDocumentUpload = () => {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <FileText className="h-5 w-5" />
-          Helpful Documents Management
+          <Brain className="h-5 w-5" />
+          Global AI Documents Management
         </CardTitle>
         <CardDescription>
-          Upload documents that will be available to all base and pro users
+          Upload documents that will be accessible to the AI for all users (these are referenced by the AI in conversations)
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -215,7 +215,7 @@ const HelpfulDocumentUpload = () => {
             id="customName"
             value={customName}
             onChange={(e) => setCustomName(e.target.value)}
-            placeholder="Enter a custom name for the document"
+            placeholder="Enter a custom name for the AI document"
             disabled={uploading}
           />
           <p className="text-xs text-muted-foreground mt-1">
@@ -236,14 +236,14 @@ const HelpfulDocumentUpload = () => {
           
           {uploading ? (
             <div className="space-y-2">
-              <p className="text-sm font-medium">Uploading document...</p>
+              <p className="text-sm font-medium">Uploading AI document...</p>
               <Progress value={uploadProgress} className="w-full max-w-xs mx-auto" />
               <p className="text-xs text-muted-foreground">{uploadProgress}% complete</p>
             </div>
           ) : (
             <div>
               <p className="text-lg font-medium mb-2">
-                {isDragActive ? 'Drop the document here' : 'Upload Helpful Document'}
+                {isDragActive ? 'Drop the AI document here' : 'Upload Global AI Document'}
               </p>
               <p className="text-sm text-muted-foreground">
                 Drag and drop a PDF, Word document, or image, or click to select
@@ -258,26 +258,26 @@ const HelpfulDocumentUpload = () => {
         {/* Document List */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium">Uploaded Documents</h3>
+            <h3 className="text-lg font-medium">Uploaded AI Documents</h3>
             <Badge variant="secondary">{documents.length} documents</Badge>
           </div>
 
           {loading ? (
             <div className="text-center py-4">
-              <p className="text-sm text-muted-foreground">Loading documents...</p>
+              <p className="text-sm text-muted-foreground">Loading AI documents...</p>
             </div>
           ) : documents.length === 0 ? (
             <div className="text-center py-8 border rounded-lg bg-muted/50">
               <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-              <p className="text-sm font-medium">No documents uploaded</p>
-              <p className="text-xs text-muted-foreground">Upload your first helpful document above</p>
+              <p className="text-sm font-medium">No AI documents uploaded</p>
+              <p className="text-xs text-muted-foreground">Upload your first global AI document above</p>
             </div>
           ) : (
             <div className="space-y-3">
               {documents.map((doc) => (
                 <div key={doc.id} className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="flex items-center gap-3">
-                    <FileText className="h-8 w-8 text-primary" />
+                    <Brain className="h-8 w-8 text-primary" />
                     <div>
                       <p className="font-medium">{doc.filename}</p>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -287,6 +287,14 @@ const HelpfulDocumentUpload = () => {
                         <span>{formatFileSize(doc.file_size)}</span>
                         <span>•</span>
                         <span>{new Date(doc.created_at).toLocaleDateString()}</span>
+                        {doc.extracted_text && (
+                          <>
+                            <span>•</span>
+                            <Badge variant="outline" className="text-xs">
+                              Text Extracted
+                            </Badge>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -308,4 +316,4 @@ const HelpfulDocumentUpload = () => {
   );
 };
 
-export default HelpfulDocumentUpload;
+export default GlobalAIDocumentUpload;

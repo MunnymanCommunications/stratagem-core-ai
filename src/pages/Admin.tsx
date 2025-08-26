@@ -12,7 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Settings, Brain, Key, Users, FileText, Save, CreditCard, UserPlus, Activity, MessageCircle } from 'lucide-react';
-import HelpfulDocumentUpload from '@/components/admin/HelpfulDocumentUpload';
+import HelpfulWorksheetUpload from '@/components/admin/HelpfulWorksheetUpload';
+import GlobalAIDocumentUpload from '@/components/admin/GlobalAIDocumentUpload';
 import { useRoles } from '@/hooks/useRoles';
 import InviteTokenManager from '@/components/admin/InviteTokenManager';
 import UserAnalytics from '@/components/admin/UserAnalytics';
@@ -587,7 +588,10 @@ You can reference uploaded documents to help with business tasks, generate invoi
           </TabsContent>
 
           <TabsContent value="documents">
-            <HelpfulDocumentUpload />
+            <div className="space-y-6">
+              <GlobalAIDocumentUpload />
+              <HelpfulWorksheetUpload />
+            </div>
           </TabsContent>
         </Tabs>
       </div>
