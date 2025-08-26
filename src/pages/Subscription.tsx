@@ -113,7 +113,7 @@ const Subscription = () => {
   const plans = [
     {
       name: 'Base',
-      price: 'Free',
+      price: '$49.95/month',
       tier: 'base',
       description: 'Perfect for getting started',
       icon: Star,
@@ -133,7 +133,7 @@ const Subscription = () => {
     },
     {
       name: 'Pro',
-      price: '$29/month',
+      price: '$99.95/month',
       tier: 'pro',
       description: 'For growing businesses',
       icon: Crown,

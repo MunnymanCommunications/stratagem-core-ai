@@ -37,6 +37,7 @@ interface AdminSettings {
   general_assistant_id: string | null;
   platform_assistant_id: string | null;
   platform_prompt: string | null;
+  payment_required: boolean;
 }
 
 const Admin = () => {
@@ -112,7 +113,10 @@ useEffect(() => {
 You can reference uploaded documents to help with business tasks, generate invoices based on pricing documents, and provide assistance with various business operations. Always be professional and helpful.`,
           max_base_documents: 1,
           max_pro_documents: 5,
-          platform_prompt: null
+          price_base_cents: 4995,
+          price_pro_cents: 9995,
+          platform_prompt: null,
+          payment_required: true
         })
         .select()
         .single();
@@ -149,6 +153,7 @@ You can reference uploaded documents to help with business tasks, generate invoi
         general_assistant_id: settings.general_assistant_id,
         platform_assistant_id: settings.platform_assistant_id,
         platform_prompt: settings.platform_prompt,
+        payment_required: settings.payment_required,
       };
 
       // Only include API key if it's been changed
@@ -514,6 +519,45 @@ You can reference uploaded documents to help with business tasks, generate invoi
                 />
                 <p className="text-xs text-muted-foreground mt-1">
                   Use template variables: {'{'}company{'}'}, {'{'}full_name{'}'}, {'{'}email{'}'}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Payment & Access Control */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Key className="h-5 w-5" />
+                Access Control
+              </CardTitle>
+              <CardDescription>
+                Configure payment requirements and trial access
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label htmlFor="paymentRequired">Payment Required</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Require payment to access portal features. When disabled, users can try features without payment.
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  id="paymentRequired"
+                  checked={settings.payment_required}
+                  onChange={(e) => setSettings(prev => prev ? { ...prev, payment_required: e.target.checked } : null)}
+                  className="h-4 w-4"
+                />
+              </div>
+              
+              <div className="p-4 bg-muted rounded-lg">
+                <p className="text-sm">
+                  {settings.payment_required 
+                    ? "🔒 Payment Required: Users must pay to access Base and Pro features"
+                    : "🆓 Trial Mode: Users can try Base and Pro features without payment"
+                  }
                 </p>
               </div>
             </CardContent>

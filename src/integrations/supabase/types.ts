@@ -26,6 +26,7 @@ export type Database = {
           max_base_documents: number
           max_enterprise_documents: number
           max_pro_documents: number
+          payment_required: boolean
           platform_assistant_id: string | null
           platform_prompt: string | null
           price_base_cents: number
@@ -47,6 +48,7 @@ export type Database = {
           max_base_documents?: number
           max_enterprise_documents?: number
           max_pro_documents?: number
+          payment_required?: boolean
           platform_assistant_id?: string | null
           platform_prompt?: string | null
           price_base_cents?: number
@@ -68,6 +70,7 @@ export type Database = {
           max_base_documents?: number
           max_enterprise_documents?: number
           max_pro_documents?: number
+          payment_required?: boolean
           platform_assistant_id?: string | null
           platform_prompt?: string | null
           price_base_cents?: number
