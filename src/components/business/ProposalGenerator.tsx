@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,6 +38,7 @@ interface CompanyInfo {
 
 const ProposalGenerator = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [proposalNumber, setProposalNumber] = useState(`PROP-${Date.now()}`);
   const [issueDate, setIssueDate] = useState(new Date().toISOString().split('T')[0]);
   const [validUntil, setValidUntil] = useState(
@@ -65,6 +68,42 @@ const ProposalGenerator = () => {
 
   const [projectOverview, setProjectOverview] = useState('');
   const [terms, setTerms] = useState('Payment terms: 50% upfront, 50% on completion.\nDelivery timeline as specified above.\nAll prices are in USD.');
+
+  // Load company info from profile
+  useEffect(() => {
+    if (user) {
+      loadCompanyFromProfile();
+    }
+  }, [user]);
+
+  const loadCompanyFromProfile = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user?.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      
+      if (data) {
+        const fullAddress = [data.address, data.city, data.state, data.zip_code]
+          .filter(Boolean)
+          .join(', ');
+          
+        setCompanyInfo(prev => ({
+          ...prev,
+          name: data.company || '',
+          address: fullAddress,
+          phone: data.phone || '',
+          email: data.email || '',
+          website: data.website || '',
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading company info:', error);
+    }
+  };
 
   const addItem = () => {
     const newItem: ProposalItem = {
@@ -196,6 +235,9 @@ ${companyInfo.name}
           <p className="text-muted-foreground">Create professional proposals for your clients</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="ghost" onClick={loadCompanyFromProfile}>
+            Load from Profile
+          </Button>
           <Button variant="outline" onClick={loadTemplate}>
             Load Template
           </Button>

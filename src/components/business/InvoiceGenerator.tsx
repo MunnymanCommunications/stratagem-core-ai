@@ -1,4 +1,6 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -37,6 +39,7 @@ interface ClientInfo {
 }
 
 const InvoiceGenerator = () => {
+  const { user } = useAuth();
   const [invoiceNumber, setInvoiceNumber] = useState(`INV-${Date.now()}`);
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
   const [dueDate, setDueDate] = useState('');
@@ -62,6 +65,40 @@ const InvoiceGenerator = () => {
   ]);
   const [notes, setNotes] = useState('');
   const logoInputRef = useRef<HTMLInputElement>(null);
+
+  // Load company info from profile
+  useEffect(() => {
+    if (user) {
+      loadCompanyFromProfile();
+    }
+  }, [user]);
+
+  const loadCompanyFromProfile = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user?.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      
+      if (data) {
+        setCompanyInfo(prev => ({
+          ...prev,
+          name: data.company || '',
+          address: data.address || '',
+          city: data.city || '',
+          state: data.state || '',
+          zip: data.zip_code || '',
+          phone: data.phone || '',
+          email: data.email || '',
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading company info:', error);
+    }
+  };
 
   const addItem = () => {
     const newItem: InvoiceItem = {
@@ -162,6 +199,10 @@ const InvoiceGenerator = () => {
           <p className="text-muted-foreground">Create professional invoices for your business</p>
         </div>
         <div className="flex gap-2">
+          <Button onClick={loadCompanyFromProfile} variant="ghost" size="sm">
+            <Upload className="h-4 w-4 mr-2" />
+            Load from Profile
+          </Button>
           <Button onClick={loadTemplate} variant="outline">Load Template</Button>
           <Button onClick={saveTemplate} variant="outline">Save Template</Button>
           <Button onClick={generatePDF}>
