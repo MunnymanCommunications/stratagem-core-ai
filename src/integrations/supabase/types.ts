@@ -583,6 +583,54 @@ export type Database = {
         }
         Relationships: []
       }
+      voltage_calculations: {
+        Row: {
+          calculation_details: Json | null
+          calculation_type: string
+          created_at: string
+          current_amps: number | null
+          distance: number | null
+          id: string
+          material: string | null
+          system_voltage: number | null
+          updated_at: string
+          user_id: string
+          voltage_drop_calculated: number | null
+          voltage_drop_percentage: number | null
+          wire_size: string | null
+        }
+        Insert: {
+          calculation_details?: Json | null
+          calculation_type?: string
+          created_at?: string
+          current_amps?: number | null
+          distance?: number | null
+          id?: string
+          material?: string | null
+          system_voltage?: number | null
+          updated_at?: string
+          user_id: string
+          voltage_drop_calculated?: number | null
+          voltage_drop_percentage?: number | null
+          wire_size?: string | null
+        }
+        Update: {
+          calculation_details?: Json | null
+          calculation_type?: string
+          created_at?: string
+          current_amps?: number | null
+          distance?: number | null
+          id?: string
+          material?: string | null
+          system_voltage?: number | null
+          updated_at?: string
+          user_id?: string
+          voltage_drop_calculated?: number | null
+          voltage_drop_percentage?: number | null
+          wire_size?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

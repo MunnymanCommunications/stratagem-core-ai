@@ -4,9 +4,13 @@ import SEO from '@/components/seo/SEO';
 import InvoiceGenerator from '@/components/business/InvoiceGenerator';
 import ProposalGenerator from '@/components/business/ProposalGenerator';
 import BusinessCalculators from '@/components/business/BusinessCalculators';
+import VoltageDropCalculator from '@/components/business/VoltageDropCalculator';
+import { useRoles } from '@/hooks/useRoles';
+import { useSubscription } from '@/hooks/useSubscription';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import { 
   Calculator, 
   FileText, 
@@ -16,42 +20,62 @@ import {
   DollarSign,
   Clock,
   Target,
-  BarChart3
+  BarChart3,
+  Zap
 } from 'lucide-react';
 
 const BusinessTools = () => {
+  const { isAdmin } = useRoles();
+  const { isProOrHigher } = useSubscription();
   const [activeTab, setActiveTab] = useState('invoice');
 
-  const tools = [
+  const baseTools = [
     {
       id: 'invoice',
       title: 'Invoice Generator',
       description: 'Create professional invoices with your branding',
       icon: FileText,
-      color: 'bg-blue-500'
+      color: 'bg-blue-500',
+      requiresPro: false
     },
     {
       id: 'proposal',
       title: 'Proposal Generator',
       description: 'Create professional proposals for clients',
       icon: FileText,
-      color: 'bg-indigo-500'
+      color: 'bg-indigo-500',
+      requiresPro: false
     },
     {
       id: 'calculator',
       title: 'Business Calculator',
       description: 'Calculate taxes, margins, and ROI',
       icon: Calculator,
-      color: 'bg-green-500'
+      color: 'bg-green-500',
+      requiresPro: false
     },
     {
       id: 'analytics',
       title: 'Performance Tracker',
       description: 'Track business metrics and KPIs',
       icon: TrendingUp,
-      color: 'bg-orange-500'
+      color: 'bg-orange-500',
+      requiresPro: false
     }
   ];
+
+  const proTools = [
+    {
+      id: 'voltage-calc',
+      title: 'Voltage Drop Calculator',
+      description: 'AI-powered low voltage system calculations',
+      icon: Zap,
+      color: 'bg-purple-500',
+      requiresPro: true
+    }
+  ];
+
+  const tools = [...baseTools, ...(isProOrHigher || isAdmin ? proTools : [])];
 
   return (
     <Layout>
@@ -69,11 +93,14 @@ const BusinessTools = () => {
         </header>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className={`grid w-full grid-cols-${tools.length}`}>
             {tools.map((tool) => (
               <TabsTrigger key={tool.id} value={tool.id} className="flex items-center gap-2">
                 <tool.icon className="h-4 w-4" />
                 <span className="hidden sm:inline">{tool.title}</span>
+                {tool.requiresPro && (
+                  <Badge variant="secondary" className="text-xs ml-1">PRO</Badge>
+                )}
               </TabsTrigger>
             ))}
           </TabsList>
@@ -88,6 +115,37 @@ const BusinessTools = () => {
 
           <TabsContent value="calculator" className="space-y-6">
             <BusinessCalculators />
+          </TabsContent>
+
+          <TabsContent value="voltage-calc" className="space-y-6">
+            {isProOrHigher || isAdmin ? (
+              <VoltageDropCalculator />
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Zap className="h-5 w-5" />
+                    Voltage Drop Calculator
+                    <Badge variant="secondary">PRO</Badge>
+                  </CardTitle>
+                  <CardDescription>
+                    Advanced AI-powered voltage drop calculations for low voltage systems
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-8">
+                    <Zap className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">Pro Feature</h3>
+                    <p className="text-muted-foreground mb-4">
+                      This advanced voltage drop calculator with AI assistant is available for Pro and Enterprise users.
+                    </p>
+                    <Button variant="outline">
+                      Upgrade to Pro
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-6">
