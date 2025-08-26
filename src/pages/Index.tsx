@@ -99,16 +99,16 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/white-label')}>
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/helpful-documents')}>
             <CardHeader>
-              <CardTitle>White-Label</CardTitle>
-              <CardDescription>Customize for your partners</CardDescription>
+              <CardTitle>Helpful Documents</CardTitle>
+              <CardDescription>Access guides and resources</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-4">
-                Brand-specific implementations and multi-tenant support.
+                View, download, and print helpful PDFs and guides provided by admins.
               </p>
-              <Button variant="outline" className="w-full">Manage Brands</Button>
+              <Button variant="outline" className="w-full">Browse Documents</Button>
             </CardContent>
           </Card>
 
