@@ -55,6 +55,7 @@ const Chat = () => {
   const [generatedContent, setGeneratedContent] = useState('');
   const [streamingMessage, setStreamingMessage] = useState('');
   const [isAssessmentMode, setIsAssessmentMode] = useState(false);
+  const [lastAssessmentImages, setLastAssessmentImages] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -135,7 +136,7 @@ const Chat = () => {
     }
   };
 
-  const sendMessage = async (messageContent?: string) => {
+  const sendMessage = async (messageContent?: string, assessmentData?: any) => {
     const messageToSend = messageContent || inputMessage;
     if (!messageToSend.trim() || !currentConversation || isLoading) return;
 
@@ -144,7 +145,7 @@ const Chat = () => {
     // Add action context if one is selected
     if (activeAction) {
       const actionMap = {
-        'generate-proposal': 'Generate a professional proposal based on our conversation. Use my uploaded proposal templates for formatting and include relevant services from my pricing document. Make sure to include project timeline, deliverables, and pricing.',
+        'generate-proposal': 'Generate a professional proposal based on our conversation. Use my uploaded proposal templates for formatting and include relevant services from my pricing document. Make sure to include project timeline, deliverables, and pricing. If site images were uploaded during assessment, reference them in the proposal.',
         'generate-invoice': 'Generate an invoice based on the services we discussed. Use my company information and pricing document to create an accurate invoice with the correct pricing and branding.'
       };
       userMessage = `${actionMap[activeAction as keyof typeof actionMap]} ${userMessage}`;
@@ -196,7 +197,8 @@ const Chat = () => {
           body: JSON.stringify({
             message: userMessage,
             conversationHistory,
-            userId: user?.id
+            userId: user?.id,
+            structuredData: assessmentData
           })
         });
 
@@ -338,6 +340,9 @@ const Chat = () => {
         additionalNotes: data.additionalNotes
       };
 
+      // Store assessment images for later use in proposals
+      setLastAssessmentImages(imagesBase64);
+
       const assessmentMessage = `STRUCTURED ASSESSMENT DATA:
 
 **Project Driver:** ${data.step1}
@@ -359,8 +364,8 @@ ${data.additionalNotes ? `**Additional Notes:** ${data.additionalNotes}` : ''}
 
 Please provide a comprehensive security camera system assessment based on this structured information. Include specific recommendations, pricing considerations, and implementation timeline.`;
 
-      // Send structured message
-      await sendMessage(assessmentMessage);
+      // Send structured message with images
+      await sendMessage(assessmentMessage, structuredData);
       
       // Switch back to chat mode after submission
       setIsAssessmentMode(false);
@@ -554,6 +559,7 @@ Please provide a comprehensive security camera system assessment based on this s
           documentType={activeAction === 'generate-proposal' ? 'proposal' : 'invoice'}
           aiGeneratedContent={generatedContent}
           clientName="Client"
+          assessmentImages={lastAssessmentImages}
         />
       </div>
     </Layout>

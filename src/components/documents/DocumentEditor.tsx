@@ -17,6 +17,7 @@ interface DocumentEditorProps {
   documentType: 'proposal' | 'invoice';
   aiGeneratedContent: string;
   clientName?: string;
+  assessmentImages?: string[];
 }
 
 interface CompanyTemplate {
@@ -33,7 +34,8 @@ const DocumentEditor = ({
   onClose, 
   documentType, 
   aiGeneratedContent,
-  clientName = 'Client'
+  clientName = 'Client',
+  assessmentImages = []
 }: DocumentEditorProps) => {
   const { user } = useAuth();
   const [editableContent, setEditableContent] = useState('');
@@ -55,6 +57,18 @@ const DocumentEditor = ({
           .replace(/\*(.*?)\*/g, '<em>$1</em>') // Italic text
           .replace(/\n\n/g, '</p><p>') // Paragraphs
           .replace(/\n/g, '<br>'); // Line breaks
+
+        // Replace image placeholders with actual site images
+        if (assessmentImages.length > 0) {
+          assessmentImages.forEach((imageData, index) => {
+            const placeholder = `[Site Image ${index + 1}]`;
+            const imageHtml = `<div style="margin: 20px 0; text-align: center;">
+              <img src="${imageData}" alt="Site Image ${index + 1}" style="max-width: 100%; height: auto; border: 1px solid #e5e7eb; border-radius: 8px;" />
+              <p style="font-size: 14px; color: #6b7280; margin-top: 8px;">Site Image ${index + 1}</p>
+            </div>`;
+            cleanContent = cleanContent.replace(placeholder, imageHtml);
+          });
+        }
         
         // Wrap in paragraphs if not already wrapped
         if (!cleanContent.startsWith('<')) {

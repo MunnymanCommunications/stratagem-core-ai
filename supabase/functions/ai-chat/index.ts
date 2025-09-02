@@ -287,7 +287,13 @@ serve(async (req) => {
         .replace(/\{\{conversation_history\}\}/g, historyContext)
         .replace(/\{\{documents\}\}/g, documentsContext);
 
-      systemPrompt += documentsContext + userContext + '\n\nWhen generating proposals or invoices, use the available documents to include accurate pricing, services, and company information. Always be helpful and professional.';
+      // Add image context if available
+      let imageContext = '';
+      if (structuredData && structuredData.siteImages && structuredData.siteImages.length > 0) {
+        imageContext = `\n\nSITE IMAGES: ${structuredData.siteImages.length} site image(s) have been uploaded and analyzed. When generating proposals, reference these images and include placeholder text like "[Site Image ${1}]" where appropriate to indicate where images should be displayed in the final document.`;
+      }
+
+      systemPrompt += documentsContext + userContext + imageContext + '\n\nWhen generating proposals or invoices, use the available documents to include accurate pricing, services, and company information. If site images were provided, reference them in the proposal and include image placeholders. Always be helpful and professional.';
 
       const messages = [
         { role: 'system', content: systemPrompt },
