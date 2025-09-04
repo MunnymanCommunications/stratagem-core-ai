@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import DOMPurify from 'dompurify';
 
 interface DocumentEditorProps {
   isOpen: boolean;
@@ -258,7 +259,11 @@ const DocumentEditor = ({
   };
 
   const handleContentChange = (e: React.FormEvent<HTMLDivElement>) => {
-    setEditableContent(e.currentTarget.innerHTML);
+    const sanitizedContent = DOMPurify.sanitize(e.currentTarget.innerHTML, {
+      ALLOWED_TAGS: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'br', 'strong', 'em', 'u', 'ol', 'ul', 'li', 'img', 'div'],
+      ALLOWED_ATTR: ['src', 'alt', 'style', 'class']
+    });
+    setEditableContent(sanitizedContent);
   };
 
   return (
@@ -300,7 +305,12 @@ const DocumentEditor = ({
               contentEditable
               onInput={handleContentChange}
               className="p-6 min-h-[300px] focus:outline-none focus:ring-2 focus:ring-blue-500 prose max-w-none"
-              dangerouslySetInnerHTML={{ __html: editableContent }}
+              dangerouslySetInnerHTML={{ 
+                __html: DOMPurify.sanitize(editableContent, {
+                  ALLOWED_TAGS: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'br', 'strong', 'em', 'u', 'ol', 'ul', 'li', 'img', 'div'],
+                  ALLOWED_ATTR: ['src', 'alt', 'style', 'class']
+                })
+              }}
               style={{ 
                 lineHeight: '1.6',
                 fontFamily: 'Arial, sans-serif'

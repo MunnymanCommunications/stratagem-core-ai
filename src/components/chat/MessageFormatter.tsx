@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import DOMPurify from 'dompurify';
 
 interface MessageFormatterProps {
   content: string;
@@ -42,10 +43,15 @@ const MessageFormatter = memo(({ content, className = "" }: MessageFormatterProp
     return formatted;
   };
 
+  const sanitizedHtml = DOMPurify.sanitize(formatMessage(content), {
+    ALLOWED_TAGS: ['h1', 'h2', 'h3', 'strong', 'em', 'ul', 'ol', 'li', 'pre', 'code', 'br'],
+    ALLOWED_ATTR: ['class']
+  });
+
   return (
     <div 
       className={`prose prose-sm max-w-none ${className}`}
-      dangerouslySetInnerHTML={{ __html: formatMessage(content) }}
+      dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
     />
   );
 });
