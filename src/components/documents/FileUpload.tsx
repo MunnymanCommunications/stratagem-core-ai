@@ -5,9 +5,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Upload, File, X, CheckCircle } from 'lucide-react';
+import { Upload, File, X, CheckCircle, Eye } from 'lucide-react';
 import { extractPDFContent } from '@/supabase/pdf-reader';
+import { PDFExtractor } from '@/components/pdf/PDFExtractor';
 
 interface FileUploadProps {
   onUploadComplete?: () => void;
@@ -36,6 +38,7 @@ const FileUpload = ({
 }: FileUploadProps) => {
   const { user } = useAuth();
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
+  const [showExtractor, setShowExtractor] = useState(false);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (!user) {
@@ -266,6 +269,32 @@ const FileUpload = ({
             ))}
           </div>
         )}
+
+        {/* Enhanced PDF Extractor Button */}
+        <div className="mt-6 flex justify-center">
+          <Dialog open={showExtractor} onOpenChange={setShowExtractor}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="flex items-center space-x-2">
+                <Eye className="h-4 w-4" />
+                <span>Advanced PDF Text Extractor</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>PDF Text Extractor</DialogTitle>
+              </DialogHeader>
+              <PDFExtractor 
+                showFeatures={false}
+                title="Extract and Preview PDF Content"
+                description="Upload a PDF to extract text and tables before saving to your documents."
+                onExtractedText={(text, fileName) => {
+                  toast.success(`Successfully extracted text from ${fileName}. You can now upload it normally to save to your documents.`);
+                  setShowExtractor(false);
+                }}
+              />
+            </DialogContent>
+          </Dialog>
+        </div>
       </CardContent>
     </Card>
   );

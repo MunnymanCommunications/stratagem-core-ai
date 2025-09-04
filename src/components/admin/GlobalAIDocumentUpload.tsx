@@ -6,9 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Upload, FileText, Trash2, AlertCircle, Brain } from 'lucide-react';
+import { Upload, FileText, Trash2, AlertCircle, Brain, Eye } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
+import { PDFExtractor } from '@/components/pdf/PDFExtractor';
 
 interface GlobalAIDocument {
   id: string;
@@ -26,6 +28,7 @@ const GlobalAIDocumentUpload = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [customName, setCustomName] = useState('');
   const [loading, setLoading] = useState(true);
+  const [showExtractor, setShowExtractor] = useState(false);
 
   useEffect(() => {
     fetchGlobalAIDocuments();
@@ -253,6 +256,32 @@ const GlobalAIDocumentUpload = () => {
               </p>
             </div>
           )}
+        </div>
+
+        {/* Enhanced PDF Extractor Button */}
+        <div className="flex justify-center">
+          <Dialog open={showExtractor} onOpenChange={setShowExtractor}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="flex items-center space-x-2">
+                <Eye className="h-4 w-4" />
+                <span>Advanced PDF Text Extractor</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>PDF Text Extractor</DialogTitle>
+              </DialogHeader>
+              <PDFExtractor 
+                showFeatures={false}
+                title="Extract and Preview PDF Content"
+                description="Upload a PDF to extract text and tables before saving to global AI documents."
+                onExtractedText={(text, fileName) => {
+                  toast.success(`Successfully extracted text from ${fileName}. You can now upload it normally to save to global AI documents.`);
+                  setShowExtractor(false);
+                }}
+              />
+            </DialogContent>
+          </Dialog>
         </div>
 
         {/* Document List */}
