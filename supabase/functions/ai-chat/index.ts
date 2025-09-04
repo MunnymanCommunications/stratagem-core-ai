@@ -83,9 +83,9 @@ serve(async (req) => {
       console.error('Error fetching user documents:', userDocsError);
     }
 
-    // Get global documents with extracted text
+    // Get global AI documents with extracted text
     const { data: globalDocs, error: globalDocsError } = await supabase
-      .from('global_documents')
+      .from('global_ai_documents')
       .select('filename, file_path, mime_type, extracted_text');
 
     if (globalDocsError) {

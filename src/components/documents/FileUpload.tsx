@@ -5,11 +5,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Upload, File, X, CheckCircle, Eye } from 'lucide-react';
-import { extractPDFContent } from '@/supabase/pdf-reader';
-import { PDFExtractor } from '@/components/pdf/PDFExtractor';
+import { Upload, File, X, CheckCircle } from 'lucide-react';
 
 interface FileUploadProps {
   onUploadComplete?: () => void;
@@ -38,7 +35,6 @@ const FileUpload = ({
 }: FileUploadProps) => {
   const { user } = useAuth();
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
-  const [showExtractor, setShowExtractor] = useState(false);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (!user) {
@@ -75,22 +71,23 @@ const FileUpload = ({
 
         if (uploadError) throw uploadError;
 
+        // Update progress to show processing
+        setUploadingFiles(prev =>
+          prev.map(f =>
+            f.id === uploadingFile.id
+              ? { ...f, progress: 50 }
+              : f
+          )
+        );
+
         // Extract text from PDF if it's a PDF file using edge function
         let extractedText = null;
         if (file.type === 'application/pdf') {
           try {
-            setUploadingFiles(prev =>
-              prev.map(f =>
-                f.id === uploadingFile.id
-                  ? { ...f, progress: 50 }
-                  : f
-              )
-            );
-            
-            console.log('Calling OpenAI Vision PDF extractor for file:', uploadData.path);
+            console.log('Calling PDF extractor for file:', uploadData.path);
             
             const { data: extractorResponse, error: extractorError } = await supabase.functions
-              .invoke('pdf-vision-extractor', {
+              .invoke('pdf-extractor', {
                 body: { 
                   filePath: uploadData.path, 
                   bucket: 'documents' 
@@ -100,41 +97,21 @@ const FileUpload = ({
             console.log('PDF extractor response:', extractorResponse);
             
             if (extractorError) {
-              console.error('PDF extraction error:', extractorError);
-              setUploadingFiles(prev =>
-                prev.map(f =>
-                  f.id === uploadingFile.id
-                    ? { ...f, status: 'error', error: `Processing failed: ${extractorError.message}` }
-                    : f
-                )
-              );
+              console.warn('PDF extraction failed, proceeding without text extraction:', extractorError);
             } else if (extractorResponse?.success && extractorResponse?.content) {
               extractedText = extractorResponse.content;
-              const metrics = extractorResponse.processingMetrics;
-              const processingTimeSeconds = (metrics?.processingTimeMs / 1000)?.toFixed(1) || 'N/A';
-              console.log('PDF text extracted successfully using GPT-5 Vision, length:', extractedText.length);
-              console.log('Processing metrics:', metrics);
+              console.log('PDF text extracted successfully, length:', extractedText.length);
               
               setUploadingFiles(prev =>
                 prev.map(f =>
                   f.id === uploadingFile.id
-                    ? { ...f, progress: 75, status: 'processing', message: `Processed in ${processingTimeSeconds}s with GPT-5` }
-                    : f
-                )
-              );
-            } else {
-              const errorMsg = extractorResponse?.error || 'Unknown processing error occurred';
-              console.error('PDF extraction failed:', errorMsg);
-              setUploadingFiles(prev =>
-                prev.map(f =>
-                  f.id === uploadingFile.id
-                    ? { ...f, status: 'error', error: `Processing failed: ${errorMsg}` }
+                    ? { ...f, progress: 75, status: 'processing', message: 'Text extracted successfully' }
                     : f
                 )
               );
             }
           } catch (error) {
-            console.error('Error calling PDF extractor:', error);
+            console.warn('Error calling PDF extractor, proceeding without text extraction:', error);
           }
         }
 
@@ -270,31 +247,6 @@ const FileUpload = ({
           </div>
         )}
 
-        {/* Enhanced PDF Extractor Button */}
-        <div className="mt-6 flex justify-center">
-          <Dialog open={showExtractor} onOpenChange={setShowExtractor}>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="flex items-center space-x-2">
-                <Eye className="h-4 w-4" />
-                <span>Advanced PDF Text Extractor</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>PDF Text Extractor</DialogTitle>
-              </DialogHeader>
-              <PDFExtractor 
-                showFeatures={false}
-                title="Extract and Preview PDF Content"
-                description="Upload a PDF to extract text and tables before saving to your documents."
-                onExtractedText={(text, fileName) => {
-                  toast.success(`Successfully extracted text from ${fileName}. You can now upload it normally to save to your documents.`);
-                  setShowExtractor(false);
-                }}
-              />
-            </DialogContent>
-          </Dialog>
-        </div>
       </CardContent>
     </Card>
   );
