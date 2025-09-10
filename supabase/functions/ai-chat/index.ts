@@ -15,6 +15,7 @@ interface RequestBody {
     content: string;
   }>;
   userId: string;
+  conversationId?: string;
   structuredData?: {
     projectDriver: string;
     priorities: string;
@@ -48,7 +49,7 @@ serve(async (req) => {
     
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const { message, conversationHistory, userId, structuredData }: RequestBody = await req.json();
+    const { message, conversationHistory, userId, conversationId, structuredData }: RequestBody = await req.json();
 
     console.log('Processing AI chat request for user:', userId);
 
@@ -293,7 +294,7 @@ serve(async (req) => {
         imageContext = `\n\nSITE IMAGES: ${structuredData.siteImages.length} site image(s) have been uploaded and analyzed. When generating proposals, reference these images and include placeholder text like "[Site Image ${1}]" where appropriate to indicate where images should be displayed in the final document.`;
       }
 
-      systemPrompt += documentsContext + userContext + imageContext + '\n\nWhen generating proposals or invoices, use the available documents to include accurate pricing, services, and company information. If site images were provided, reference them in the proposal and include image placeholders. Always be helpful and professional.';
+      systemPrompt += documentsContext + userContext + imageContext + '\n\nWhen generating proposals or invoices, use the available documents to include accurate pricing, services, and company information. If site images were provided, reference them in the proposal and include image placeholders. Always be helpful and professional.\n\nIMPORTANT: After each response, analyze the conversation for security risk indicators and suggest a priority score (1-100) based on:\n- Mentioned vulnerabilities or security issues (high priority: 80-100)\n- Compliance requirements or regulatory concerns (medium-high: 60-90)\n- Budget size and project urgency (medium: 40-70)\n- General consultations (low: 20-50)\n\nFormat your priority assessment at the end as: [PRIORITY_SCORE: XX] where XX is your suggested score.';
 
       const messages = [
         { role: 'system', content: systemPrompt },
@@ -335,7 +336,33 @@ serve(async (req) => {
       }
 
       const data = await response.json();
-      const responseText = data.choices[0].message.content;
+      let responseText = data.choices[0].message.content;
+
+      // Extract priority score and update conversation
+      if (conversationId) {
+        const priorityMatch = responseText.match(/\[PRIORITY_SCORE:\s*(\d+)\]/);
+        if (priorityMatch) {
+          const score = parseInt(priorityMatch[1]);
+          const priorityLevel = score >= 80 ? 'high' : score >= 50 ? 'medium' : 'low';
+          
+          // Remove priority score from response text
+          responseText = responseText.replace(/\[PRIORITY_SCORE:\s*\d+\]/, '').trim();
+          
+          // Update conversation with priority score (non-blocking)
+          supabase
+            .from('chat_conversations')
+            .update({ 
+              priority_score: score, 
+              priority_level: priorityLevel,
+              conversation_summary: message.slice(0, 200) // First 200 chars as summary
+            })
+            .eq('id', conversationId)
+            .then(({ error }) => {
+              if (error) console.error('Error updating priority:', error);
+              else console.log('Updated conversation priority:', score, priorityLevel);
+            });
+        }
+      }
 
       return new Response(JSON.stringify({ response: responseText }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

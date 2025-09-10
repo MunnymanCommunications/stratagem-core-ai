@@ -8,6 +8,7 @@ import ConversationList from '@/components/chat/ConversationList';
 import MessageFormatter from '@/components/chat/MessageFormatter';
 import DocumentEditor from '@/components/documents/DocumentEditor';
 import AssessmentForm from '@/components/chat/AssessmentForm';
+import CompanyInfoForm, { CompanyInfoData } from '@/components/chat/CompanyInfoForm';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -29,6 +30,12 @@ interface Conversation {
   id: string;
   title: string;
   created_at: string;
+  company_name?: string;
+  assessment_type?: string;
+  priority_score?: number;
+  priority_level?: 'low' | 'medium' | 'high';
+  conversation_summary?: string;
+  assessment_data?: any;
 }
 
 interface AssessmentData {
@@ -56,6 +63,7 @@ const Chat = () => {
   const [streamingMessage, setStreamingMessage] = useState('');
   const [isAssessmentMode, setIsAssessmentMode] = useState(false);
   const [lastAssessmentImages, setLastAssessmentImages] = useState<string[]>([]);
+  const [showCompanyForm, setShowCompanyForm] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -84,10 +92,16 @@ const Chat = () => {
         .from('chat_conversations')
         .select('*')
         .eq('user_id', user?.id)
+        .order('priority_score', { ascending: false })
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
-      setConversations(data || []);
+      // Type cast the priority_level to match our interface
+      const conversations = (data || []).map(conv => ({
+        ...conv,
+        priority_level: conv.priority_level as 'low' | 'medium' | 'high'
+      }));
+      setConversations(conversations);
     } catch (error) {
       console.error('Error fetching conversations:', error);
       toast.error('Failed to load conversations');
@@ -115,24 +129,43 @@ const Chat = () => {
     }
   };
 
-  const createNewConversation = async () => {
+  const createNewConversation = async (companyData?: CompanyInfoData): Promise<string | null> => {
     try {
+      const title = companyData 
+        ? `${companyData.companyName} - ${companyData.assessmentType.charAt(0).toUpperCase() + companyData.assessmentType.slice(1)} Assessment`
+        : 'New Conversation';
+
       const { data, error } = await supabase
         .from('chat_conversations')
         .insert({
           user_id: user?.id,
-          title: 'New Conversation'
+          title,
+          company_name: companyData?.companyName,
+          assessment_type: companyData?.assessmentType || 'general',
+          priority_score: 50,
+          priority_level: 'medium',
+          assessment_data: companyData ? {
+            industry: companyData.industry,
+            companySize: companyData.companySize,
+            contactPerson: companyData.contactPerson
+          } : {}
         })
         .select()
         .single();
 
       if (error) throw error;
-      setCurrentConversation(data.id);
-      setConversations(prev => [data, ...prev]);
+      const conversation = {
+        ...data,
+        priority_level: data.priority_level as 'low' | 'medium' | 'high'
+      };
+      setCurrentConversation(conversation.id);
+      setConversations(prev => [conversation, ...prev]);
       setMessages([]);
+      return conversation.id;
     } catch (error) {
       console.error('Error creating conversation:', error);
       toast.error('Failed to create new conversation');
+      return null;
     }
   };
 
@@ -198,6 +231,7 @@ const Chat = () => {
             message: userMessage,
             conversationHistory,
             userId: user?.id,
+            conversationId: currentConversation,
             structuredData: assessmentData
           })
         });
@@ -308,9 +342,39 @@ const Chat = () => {
     }
   };
 
+  const handleNewConversation = () => {
+    setShowCompanyForm(true);
+  };
+
+  const handleCompanyFormSubmit = async (companyData: CompanyInfoData) => {
+    const conversationId = await createNewConversation(companyData);
+    if (conversationId) {
+      setCurrentConversation(conversationId);
+      setMessages([]);
+      setGeneratedContent('');
+      setIsAssessmentMode(false);
+      setShowCompanyForm(false);
+      
+      // Send initial context message to AI
+      const contextMessage = `Starting ${companyData.assessmentType} assessment for ${companyData.companyName}. Company details: Industry: ${companyData.industry || 'Not specified'}, Size: ${companyData.companySize || 'Not specified'}, Contact: ${companyData.contactPerson || 'Not specified'}. Please begin the assessment with appropriate questions.`;
+      await sendMessage(contextMessage, companyData);
+    }
+  };
+
+  const handlePriorityUpdate = async (conversationId: string, priorityLevel: 'low' | 'medium' | 'high') => {
+    setConversations(prev => 
+      prev.map(conv => 
+        conv.id === conversationId 
+          ? { ...conv, priority_level: priorityLevel }
+          : conv
+      )
+    );
+  };
+
   const handleAssessmentSubmit = async (data: AssessmentData) => {
     if (!currentConversation) {
-      await createNewConversation();
+      const conversationId = await createNewConversation();
+      if (!conversationId) return;
     }
 
     setIsLoading(true);
@@ -391,7 +455,7 @@ Please provide a comprehensive security camera system assessment based on this s
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <CardTitle>Conversations</CardTitle>
-                  <Button onClick={createNewConversation} size="sm">
+                  <Button onClick={handleNewConversation} size="sm">
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
@@ -403,6 +467,7 @@ Please provide a comprehensive security camera system assessment based on this s
                     currentConversation={currentConversation}
                     onConversationSelect={setCurrentConversation}
                     onConversationDeleted={refreshConversations}
+                    onPriorityUpdate={handlePriorityUpdate}
                   />
                 </ScrollArea>
               </CardContent>
@@ -541,7 +606,7 @@ Please provide a comprehensive security camera system assessment based on this s
                     <p className="text-muted-foreground mb-4">
                       Start a new conversation to begin chatting with your AI assistant.
                     </p>
-                    <Button onClick={createNewConversation}>
+                    <Button onClick={handleNewConversation}>
                       <Plus className="h-4 w-4 mr-2" />
                       Start New Conversation
                     </Button>
@@ -562,6 +627,13 @@ Please provide a comprehensive security camera system assessment based on this s
           assessmentImages={lastAssessmentImages}
         />
       </div>
+
+      {/* Company Info Form */}
+      <CompanyInfoForm
+        open={showCompanyForm}
+        onSubmit={handleCompanyFormSubmit}
+        onCancel={() => setShowCompanyForm(false)}
+      />
     </Layout>
   );
 };

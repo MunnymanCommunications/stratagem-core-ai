@@ -109,22 +109,40 @@ export type Database = {
       }
       chat_conversations: {
         Row: {
+          assessment_data: Json | null
+          assessment_type: string | null
+          company_name: string | null
+          conversation_summary: string | null
           created_at: string
           id: string
+          priority_level: string | null
+          priority_score: number | null
           title: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          assessment_data?: Json | null
+          assessment_type?: string | null
+          company_name?: string | null
+          conversation_summary?: string | null
           created_at?: string
           id?: string
+          priority_level?: string | null
+          priority_score?: number | null
           title?: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          assessment_data?: Json | null
+          assessment_type?: string | null
+          company_name?: string | null
+          conversation_summary?: string | null
           created_at?: string
           id?: string
+          priority_level?: string | null
+          priority_score?: number | null
           title?: string
           updated_at?: string
           user_id?: string
