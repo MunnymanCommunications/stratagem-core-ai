@@ -93,13 +93,13 @@ const BusinessTools = () => {
         </header>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className={`grid w-full grid-cols-${tools.length}`}>
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {tools.map((tool) => (
-              <TabsTrigger key={tool.id} value={tool.id} className="flex items-center gap-2">
-                <tool.icon className="h-4 w-4" />
-                <span className="hidden sm:inline">{tool.title}</span>
+              <TabsTrigger key={tool.id} value={tool.id} className="flex items-center gap-1 text-xs">
+                <tool.icon className="h-3 w-3" />
+                <span className="hidden sm:inline truncate">{tool.title}</span>
                 {tool.requiresPro && (
-                  <Badge variant="secondary" className="text-xs ml-1">PRO</Badge>
+                  <Badge variant="secondary" className="text-xs ml-1 hidden md:inline">PRO</Badge>
                 )}
               </TabsTrigger>
             ))}
