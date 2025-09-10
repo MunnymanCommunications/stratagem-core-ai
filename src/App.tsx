@@ -17,7 +17,7 @@ import Subscription from "./pages/Subscription";
 import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
 import GetStarted from "./pages/GetStarted";
-import HelpfulWorksheets from './pages/HelpfulDocuments';
+import HelpfulDocuments from './pages/HelpfulDocuments';
 
 const queryClient = new QueryClient();
 
@@ -41,7 +41,7 @@ const App = () => (
               <Route path="/profile" element={<Profile />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/get-started" element={<GetStarted />} />
-              <Route path="/helpful-documents" element={<HelpfulWorksheets />} />
+              <Route path="/helpful-documents" element={<HelpfulDocuments />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

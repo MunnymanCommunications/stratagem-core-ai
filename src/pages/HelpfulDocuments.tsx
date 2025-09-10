@@ -18,7 +18,7 @@ interface HelpfulWorksheet {
   created_at: string;
 }
 
-const HelpfulWorksheets = () => {
+const HelpfulDocuments = () => {
   const { user } = useAuth();
   const [worksheets, setWorksheets] = useState<HelpfulWorksheet[]>([]);
   const [loading, setLoading] = useState(true);
@@ -235,4 +235,4 @@ const HelpfulWorksheets = () => {
   );
 };
 
-export default HelpfulWorksheets;
+export default HelpfulDocuments;
