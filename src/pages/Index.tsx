@@ -47,7 +47,14 @@ const Index = () => {
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/chat')}>
+          <Card 
+            className="hover:shadow-lg transition-all duration-200 cursor-pointer hover:scale-105 bg-card border border-border" 
+            onClick={(e) => {
+              e.preventDefault();
+              console.log('Navigating to chat');
+              navigate('/chat');
+            }}
+          >
             <CardHeader>
               <CardTitle>AI Assistant</CardTitle>
               <CardDescription>Get help with your business tasks</CardDescription>
@@ -56,11 +63,23 @@ const Index = () => {
               <p className="text-sm text-muted-foreground mb-4">
                 Your AI-powered assistant is ready to help with file analysis, invoice generation, and more.
               </p>
-              <Button className="w-full">Start Chat</Button>
+              <Button 
+                className="w-full pointer-events-none" 
+                onClick={(e) => e.stopPropagation()}
+              >
+                Start Chat
+              </Button>
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/documents')}>
+          <Card 
+            className="hover:shadow-lg transition-all duration-200 cursor-pointer hover:scale-105 bg-card border border-border" 
+            onClick={(e) => {
+              e.preventDefault();
+              console.log('Navigating to documents');
+              navigate('/documents');
+            }}
+          >
             <CardHeader>
               <CardTitle>Document Manager</CardTitle>
               <CardDescription>Upload and manage your files</CardDescription>
@@ -69,11 +88,24 @@ const Index = () => {
               <p className="text-sm text-muted-foreground mb-4">
                 Upload documents, images, and files for AI analysis and processing.
               </p>
-              <Button variant="outline" className="w-full">Browse Files</Button>
+              <Button 
+                variant="outline" 
+                className="w-full pointer-events-none"
+                onClick={(e) => e.stopPropagation()}
+              >
+                Browse Files
+              </Button>
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/business-tools')}>
+          <Card 
+            className="hover:shadow-lg transition-all duration-200 cursor-pointer hover:scale-105 bg-card border border-border" 
+            onClick={(e) => {
+              e.preventDefault();
+              console.log('Navigating to business-tools');
+              navigate('/business-tools');
+            }}
+          >
             <CardHeader>
               <CardTitle>Business Tools</CardTitle>
               <CardDescription>Generate invoices and reports</CardDescription>
@@ -82,11 +114,24 @@ const Index = () => {
               <p className="text-sm text-muted-foreground mb-4">
                 Create professional invoices, reports, and other business documents.
               </p>
-              <Button variant="outline" className="w-full">View Tools</Button>
+              <Button 
+                variant="outline" 
+                className="w-full pointer-events-none"
+                onClick={(e) => e.stopPropagation()}
+              >
+                View Tools
+              </Button>
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/analytics')}>
+          <Card 
+            className="hover:shadow-lg transition-all duration-200 cursor-pointer hover:scale-105 bg-card border border-border" 
+            onClick={(e) => {
+              e.preventDefault();
+              console.log('Navigating to analytics');
+              navigate('/analytics');
+            }}
+          >
             <CardHeader>
               <CardTitle>Analytics</CardTitle>
               <CardDescription>Monitor your application usage</CardDescription>
@@ -95,11 +140,24 @@ const Index = () => {
               <p className="text-sm text-muted-foreground mb-4">
                 Track performance metrics and user analytics for your business.
               </p>
-              <Button variant="outline" className="w-full">View Analytics</Button>
+              <Button 
+                variant="outline" 
+                className="w-full pointer-events-none"
+                onClick={(e) => e.stopPropagation()}
+              >
+                View Analytics
+              </Button>
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/helpful-documents')}>
+          <Card 
+            className="hover:shadow-lg transition-all duration-200 cursor-pointer hover:scale-105 bg-card border border-border" 
+            onClick={(e) => {
+              e.preventDefault();
+              console.log('Navigating to helpful-documents');
+              navigate('/helpful-documents');
+            }}
+          >
             <CardHeader>
               <CardTitle>Helpful Documents</CardTitle>
               <CardDescription>Access guides and resources</CardDescription>
@@ -108,11 +166,24 @@ const Index = () => {
               <p className="text-sm text-muted-foreground mb-4">
                 View, download, and print helpful PDFs and guides provided by admins.
               </p>
-              <Button variant="outline" className="w-full">Browse Documents</Button>
+              <Button 
+                variant="outline" 
+                className="w-full pointer-events-none"
+                onClick={(e) => e.stopPropagation()}
+              >
+                Browse Documents
+              </Button>
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/subscription')}>
+          <Card 
+            className="hover:shadow-lg transition-all duration-200 cursor-pointer hover:scale-105 bg-card border border-border" 
+            onClick={(e) => {
+              e.preventDefault();
+              console.log('Navigating to subscription');
+              navigate('/subscription');
+            }}
+          >
             <CardHeader>
               <CardTitle>Subscription Tiers</CardTitle>
               <CardDescription>Manage access levels</CardDescription>
@@ -121,7 +192,13 @@ const Index = () => {
               <p className="text-sm text-muted-foreground mb-4">
                 Control Guest, Pro, and Enterprise access to features.
               </p>
-              <Button variant="outline" className="w-full">View Plans</Button>
+              <Button 
+                variant="outline" 
+                className="w-full pointer-events-none"
+                onClick={(e) => e.stopPropagation()}
+              >
+                View Plans
+              </Button>
             </CardContent>
           </Card>
         </div>
