@@ -63,10 +63,7 @@ const Index = () => {
               <p className="text-sm text-muted-foreground mb-4">
                 Your AI-powered assistant is ready to help with file analysis, invoice generation, and more.
               </p>
-              <Button 
-                className="w-full pointer-events-none" 
-                onClick={(e) => e.stopPropagation()}
-              >
+              <Button className="w-full">
                 Start Chat
               </Button>
             </CardContent>
@@ -88,11 +85,7 @@ const Index = () => {
               <p className="text-sm text-muted-foreground mb-4">
                 Upload documents, images, and files for AI analysis and processing.
               </p>
-              <Button 
-                variant="outline" 
-                className="w-full pointer-events-none"
-                onClick={(e) => e.stopPropagation()}
-              >
+              <Button variant="outline" className="w-full">
                 Browse Files
               </Button>
             </CardContent>
@@ -114,11 +107,7 @@ const Index = () => {
               <p className="text-sm text-muted-foreground mb-4">
                 Create professional invoices, reports, and other business documents.
               </p>
-              <Button 
-                variant="outline" 
-                className="w-full pointer-events-none"
-                onClick={(e) => e.stopPropagation()}
-              >
+              <Button variant="outline" className="w-full">
                 View Tools
               </Button>
             </CardContent>
@@ -140,11 +129,7 @@ const Index = () => {
               <p className="text-sm text-muted-foreground mb-4">
                 Track performance metrics and user analytics for your business.
               </p>
-              <Button 
-                variant="outline" 
-                className="w-full pointer-events-none"
-                onClick={(e) => e.stopPropagation()}
-              >
+              <Button variant="outline" className="w-full">
                 View Analytics
               </Button>
             </CardContent>
@@ -166,11 +151,7 @@ const Index = () => {
               <p className="text-sm text-muted-foreground mb-4">
                 View, download, and print helpful PDFs and guides provided by admins.
               </p>
-              <Button 
-                variant="outline" 
-                className="w-full pointer-events-none"
-                onClick={(e) => e.stopPropagation()}
-              >
+              <Button variant="outline" className="w-full">
                 Browse Documents
               </Button>
             </CardContent>
@@ -192,11 +173,7 @@ const Index = () => {
               <p className="text-sm text-muted-foreground mb-4">
                 Control Guest, Pro, and Enterprise access to features.
               </p>
-              <Button 
-                variant="outline" 
-                className="w-full pointer-events-none"
-                onClick={(e) => e.stopPropagation()}
-              >
+              <Button variant="outline" className="w-full">
                 View Plans
               </Button>
             </CardContent>
