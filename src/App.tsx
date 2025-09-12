@@ -34,6 +34,7 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               <Route path="/chat" element={<Chat />} />
               <Route path="/documents" element={<Documents />} />
+              <Route path="/pdf-extractor" element={<BrowserPDFExtractorPage />} />
               <Route path="/business-tools" element={<BusinessTools />} />
               <Route path="/analytics" element={<Analytics />} />
               <Route path="/theme" element={<Theme />} />
