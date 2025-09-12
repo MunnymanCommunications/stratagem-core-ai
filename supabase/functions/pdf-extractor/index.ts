@@ -2,6 +2,11 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.53.0';
 
+// Sanitize text by removing non-printable characters
+function sanitizeText(text: string): string {
+  return text.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
+}
+
 // Use a more reliable PDF processing approach
 async function extractTextFromPDF(arrayBuffer: ArrayBuffer, fileName: string): Promise<string> {
   try {
@@ -15,10 +20,13 @@ async function extractTextFromPDF(arrayBuffer: ArrayBuffer, fileName: string): P
     
     // Extract readable text using regex patterns for PDF text objects
     const textMatches = pdfText.match(/\((.*?)\)/g) || [];
-    const extractedText = textMatches
+    let extractedText = textMatches
       .map(match => match.replace(/[()]/g, ''))
       .filter(text => text.length > 2 && /[a-zA-Z]/.test(text))
       .join(' ');
+    
+    // Sanitize the extracted text
+    extractedText = sanitizeText(extractedText);
     
     if (extractedText.length > 50) {
       console.log(`Successfully extracted ${extractedText.length} characters of text`);
@@ -70,46 +78,32 @@ serve(async (req) => {
       throw new Error(`Failed to download file: ${downloadError.message}`);
     }
 
-    // Get file info
+    // Convert Blob to ArrayBuffer for processing
     const arrayBuffer = await fileData.arrayBuffer();
-    const fileName = filePath.split('/').pop() || 'document.pdf';
     
-    console.log('PDF file size:', arrayBuffer.byteLength);
+    // Extract text from PDF
+    const extractedText = await extractTextFromPDF(arrayBuffer, filePath.split('/').pop() || 'document.pdf');
     
-    // Extract text from PDF 
-    const extractedText = await extractTextFromPDF(arrayBuffer, fileName);
-    
-    console.log('Successfully processed PDF');
-    
-    // Store extracted text in user_documents table
+    // Update the database record
     const { error: updateError } = await supabase
       .from('user_documents')
       .update({ extracted_text: extractedText })
       .eq('file_path', filePath);
-    
-    if (updateError) {
-      console.error('Failed to update document with extracted text:', updateError);
-    } else {
-      console.log('Extracted text stored in database');
-    }
-    
-    return new Response(JSON.stringify({
-      success: true,
-      content: extractedText,
-      fileSize: arrayBuffer.byteLength,
-      pagesProcessed: 'basic'
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
 
+    if (updateError) {
+      throw new Error(`Database update failed: ${updateError.message}`);
+    }
+
+    return new Response(
+      JSON.stringify({ success: true, content: extractedText }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+    
   } catch (error) {
-    console.error('Error in pdf-extractor function:', error);
-    return new Response(JSON.stringify({ 
-      success: false,
-      error: error.message || 'Internal server error'
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    console.error('Error:', error);
+    return new Response(
+      JSON.stringify({ success: false, error: error.message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 });
