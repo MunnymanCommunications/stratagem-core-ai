@@ -8,102 +8,30 @@ function sanitizeText(text: string): string {
 }
 
 // Use a more reliable PDF processing approach
-async function extractTextFromPDF(arrayBuffer: ArrayBuffer, fileName: string): Promise<string> {
+async function extractTextFromPDF(arrayBuffer, fileName) {
   try {
     console.log('Processing PDF with text extraction...');
-    
     // Convert ArrayBuffer to Uint8Array for processing
     const uint8Array = new Uint8Array(arrayBuffer);
-    
     // Basic PDF text extraction - look for text objects in PDF
     const pdfText = new TextDecoder().decode(uint8Array);
-    
     // Extract readable text using regex patterns for PDF text objects
     const textMatches = pdfText.match(/\((.*?)\)/g) || [];
-    let extractedText = textMatches
-      .map(match => match.replace(/[()]/g, ''))
-      .filter(text => text.length > 2 && /[a-zA-Z]/.test(text))
-      .join(' ');
+    let extractedText = textMatches.map((match)=>match.replace(/[()]/g, '')).filter((text)=>text.length > 2 && /[a-zA-Z]/.test(text)).join(' ');
     
-    // Sanitize the extracted text
+    // SANITIZE THE TEXT - CRITICAL FIX
     extractedText = sanitizeText(extractedText);
     
     if (extractedText.length > 50) {
       console.log(`Successfully extracted ${extractedText.length} characters of text`);
       return `PDF Document: ${fileName}\n\nExtracted Content:\n${extractedText}`;
     }
-    
     // If no readable text found, return basic info
     return `PDF Document: ${fileName}\n\nFile Size: ${Math.round(arrayBuffer.byteLength / 1024)}KB\n\nThis PDF has been uploaded successfully. The document appears to be image-based or contains formatted content that requires specialized parsing. The file is available for reference in conversations.`;
-    
   } catch (error) {
     console.error('Error processing PDF:', error);
-    
     return `PDF Document: ${fileName}\n\nFile Size: ${Math.round(arrayBuffer.byteLength / 1024)}KB\n\nThe document has been uploaded successfully but text extraction encountered an error. The file is available for reference in conversations.\n\nError: ${error.message}`;
   }
 }
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-interface RequestBody {
-  filePath: string;
-  bucket: string;
-}
-
-serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  try {
-    const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-    const { filePath, bucket }: RequestBody = await req.json();
-
-    console.log('Processing PDF file:', filePath);
-
-    // Download the file from Supabase Storage
-    const { data: fileData, error: downloadError } = await supabase.storage
-      .from(bucket)
-      .download(filePath);
-
-    if (downloadError) {
-      throw new Error(`Failed to download file: ${downloadError.message}`);
-    }
-
-    // Convert Blob to ArrayBuffer for processing
-    const arrayBuffer = await fileData.arrayBuffer();
-    
-    // Extract text from PDF
-    const extractedText = await extractTextFromPDF(arrayBuffer, filePath.split('/').pop() || 'document.pdf');
-    
-    // Update the database record
-    const { error: updateError } = await supabase
-      .from('user_documents')
-      .update({ extracted_text: extractedText })
-      .eq('file_path', filePath);
-
-    if (updateError) {
-      throw new Error(`Database update failed: ${updateError.message}`);
-    }
-
-    return new Response(
-      JSON.stringify({ success: true, content: extractedText }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-    
-  } catch (error) {
-    console.error('Error:', error);
-    return new Response(
-      JSON.stringify({ success: false, error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
-});
+// ... rest of your existing code ...
