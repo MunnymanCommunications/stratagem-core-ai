@@ -1,27 +1,33 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.53.0';
-import pdf from 'https://cdn.jsdelivr.net/npm/pdf-parse@1.1.1/lib/pdf-parse.js';
 
-// Improved PDF text extraction using pdf-parse
+// Use a more reliable PDF processing approach
 async function extractTextFromPDF(arrayBuffer: ArrayBuffer, fileName: string): Promise<string> {
   try {
-    console.log('Processing PDF with pdf-parse...');
+    console.log('Processing PDF with text extraction...');
     
-    // Convert ArrayBuffer to Buffer for pdf-parse
-    const buffer = Buffer.from(arrayBuffer);
+    // Convert ArrayBuffer to Uint8Array for processing
+    const uint8Array = new Uint8Array(arrayBuffer);
     
-    // Extract text using pdf-parse
-    const data = await pdf(buffer);
-    const extractedText = data.text;
+    // Basic PDF text extraction - look for text objects in PDF
+    const pdfText = new TextDecoder().decode(uint8Array);
     
-    if (extractedText && extractedText.trim().length > 0) {
+    // Extract readable text using regex patterns for PDF text objects
+    const textMatches = pdfText.match(/\((.*?)\)/g) || [];
+    const extractedText = textMatches
+      .map(match => match.replace(/[()]/g, ''))
+      .filter(text => text.length > 2 && /[a-zA-Z]/.test(text))
+      .join(' ');
+    
+    if (extractedText.length > 50) {
       console.log(`Successfully extracted ${extractedText.length} characters of text`);
       return `PDF Document: ${fileName}\n\nExtracted Content:\n${extractedText}`;
-    } else {
-      console.log('No text extracted - PDF might be image-based');
-      return `PDF Document: ${fileName}\n\nFile Size: ${Math.round(arrayBuffer.byteLength / 1024)}KB\n\nThis PDF has been uploaded successfully. The document appears to be image-based or contains formatted content that requires specialized parsing. The file is available for reference in conversations.`;
     }
+    
+    // If no readable text found, return basic info
+    return `PDF Document: ${fileName}\n\nFile Size: ${Math.round(arrayBuffer.byteLength / 1024)}KB\n\nThis PDF has been uploaded successfully. The document appears to be image-based or contains formatted content that requires specialized parsing. The file is available for reference in conversations.`;
+    
   } catch (error) {
     console.error('Error processing PDF:', error);
     
