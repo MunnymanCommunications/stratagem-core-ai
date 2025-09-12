@@ -81,7 +81,19 @@ serve(async (req) => {
     
     console.log('Successfully processed PDF');
     
-    return new Response(JSON.stringify({ 
+    // Store extracted text in user_documents table
+    const { error: updateError } = await supabase
+      .from('user_documents')
+      .update({ extracted_text: extractedText })
+      .eq('file_path', filePath);
+    
+    if (updateError) {
+      console.error('Failed to update document with extracted text:', updateError);
+    } else {
+      console.log('Extracted text stored in database');
+    }
+    
+    return new Response(JSON.stringify({
       success: true,
       content: extractedText,
       fileSize: arrayBuffer.byteLength,
