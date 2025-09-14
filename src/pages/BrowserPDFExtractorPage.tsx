@@ -1,16 +1,14 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { getDocument } from 'pdfjs-dist';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
+import { extractPdfText, sanitizeText } from '@/services/pdfExtractor';
 
 export default function BrowserPDFExtractorPage() {
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
-  const [progress, setProgress] = useState(0);
   const [extractedText, setExtractedText] = useState('');
   const [bucket, setBucket] = useState<'user_documents' | 'global_documents'>('user_documents');
   const fileRef = useRef<File | null>(null);
@@ -26,33 +24,11 @@ export default function BrowserPDFExtractorPage() {
     if (!fileRef.current) return;
 
     setIsProcessing(true);
-    setProgress(0);
     
     try {
-      const arrayBuffer = await fileRef.current.arrayBuffer();
-      const pdf = await getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
-      let fullText = '';
-      const totalPages = pdf.numPages;
-
-      for (let i = 1; i <= totalPages; i++) {
-        const page = await pdf.getPage(i);
-        const textContent = await page.getTextContent();
-        
-        // Handle both TextItem and TextMarkedContent types
-        const pageText = textContent.items
-          .map(item => {
-            if ('str' in item) {
-              return item.str;
-            }
-            return '';
-          })
-          .join(' ');
-          
-        fullText += pageText + '\n\n';
-        setProgress(Math.round((i / totalPages) * 100));
-      }
-
-      setExtractedText(fullText.trim());
+      const text = await extractPdfText(fileRef.current);
+      const sanitized = sanitizeText(text);
+      setExtractedText(sanitized);
       toast.success('PDF text extracted successfully!');
     } catch (error) {
       console.error('Error extracting PDF:', error);
@@ -144,9 +120,8 @@ export default function BrowserPDFExtractorPage() {
 
             {isProcessing && (
               <div className="space-y-2">
-                <Progress value={progress} />
                 <p className="text-sm text-gray-600">
-                  Extracting text... {progress}% complete
+                  Extracting text... Please wait
                 </p>
               </div>
             )}

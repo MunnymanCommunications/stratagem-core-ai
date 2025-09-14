@@ -18,6 +18,7 @@ import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
 import GetStarted from "./pages/GetStarted";
 import HelpfulDocuments from './pages/HelpfulDocuments';
+import BrowserPDFExtractorPage from './pages/BrowserPDFExtractorPage';
 
 const queryClient = new QueryClient();
 
