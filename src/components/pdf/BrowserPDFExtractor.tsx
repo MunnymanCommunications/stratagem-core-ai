@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { createClient } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { getDocument } from 'pdfjs-dist';
 import { toast } from 'sonner';
 
@@ -41,7 +41,7 @@ export default function BrowserPDFExtractor({
       for (let i = 1; i <= totalPages; i++) {
         const page = await pdf.getPage(i);
         const textContent = await page.getTextContent();
-        const pageText = textContent.items.map(item => item.str).join(' ');
+        const pageText = textContent.items.map(item => ('str' in item ? item.str : '')).join(' ');
         fullText += pageText + '\n\n';
         setProgress(Math.round((i / totalPages) * 100));
       }
@@ -62,7 +62,7 @@ export default function BrowserPDFExtractor({
     setIsProcessing(true);
     
     try {
-      const supabase = createClient();
+      
       const { error } = await supabase
         .from(bucket)
         .update({ extracted_text: extractedText })
